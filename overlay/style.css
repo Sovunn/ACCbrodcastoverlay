@@ -21,7 +21,7 @@ html, body {
 /* ── Outer wrapper ────────────────────────── */
 #overlay {
   display: inline-block;
-  width: 450px;
+  width: 390px;
   transform-origin: top left;   /* scale anchors to top-left corner */
 }
 
@@ -109,7 +109,7 @@ html, body {
 }
 /* Team name — secondary line, broadcast style */
 .team-name {
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 600;
   color: #9ca3af;
   letter-spacing: 0.45px;
@@ -122,20 +122,20 @@ html, body {
 }
 /* Auto-hide team name when data is absent */
 .team-name:empty { display: none; }
-.pit-label { font-size: 8px; font-weight: 700; color: #ffcc00; letter-spacing: 0.3px; }
+.pit-label { font-size: 10px; font-weight: 700; color: #ffcc00; letter-spacing: 0.3px; }
 
 /* Manufacturer logo slot (shows text + optional logo) */
 .mfr {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  min-width: 40px;
+  width: 34px;
+  min-width: 34px;
   border-left: 1px solid rgba(255,255,255,0.06);   /* subtle separator from name block */
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   color: #aaa;
   letter-spacing: 0.4px;

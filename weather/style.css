@@ -25,8 +25,15 @@ html, body {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   width: 46px;
 }
-.wb-icon  { font-size: 26px; line-height: 1; filter: grayscale(1) brightness(0) invert(1); }
+.wb-icon  { font-size: 22px; line-height: 1; filter: grayscale(1) brightness(0) invert(1); }
+.wb-rain-label { font-size: 7px; font-weight: 700; color: #888; letter-spacing: 0.3px; min-height: 10px; }
+.wb-rain-label:empty { display: none; }
 .wb-label { font-size: 8px; font-weight: 700; color: #666; letter-spacing: 0.5px; }
+
+.wb-trend { font-size: 14px; font-weight: 700; color: #555; width: 12px; text-align: center; flex-shrink: 0; }
+.wb-trend:empty { width: 4px; }
+.wb-trend.trend-up   { color: #ff6666; }
+.wb-trend.trend-down { color: #66cc66; }
 
 .wb-sep { width: 1px; height: 28px; background: #2a2a2a; flex-shrink: 0; }
 

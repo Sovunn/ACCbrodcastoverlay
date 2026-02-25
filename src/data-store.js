@@ -265,6 +265,7 @@ class DataStore {
         rainIn10: this.session.rainIn10,
         rainIn30: this.session.rainIn30,
         shmLastLapMs: this.session.shmLastLapMs,
+        timeMultiplier: this.session.timeMultiplier,
       },
       track: { name: this.trackName, lengthM: this.trackLength },
       classes: outClasses,

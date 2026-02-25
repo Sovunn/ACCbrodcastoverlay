@@ -39,6 +39,8 @@ class AccUdpClient {
     this._heartbeatTimer    = null;
     this._lastPacketMs      = 0;
     this._lastSessionKey    = null;   // 'eventIndex_sessionIndex' — changes on new session
+    this._todPrev           = -1;     // previous timeOfDay sample (game seconds)
+    this._todRealMs         = 0;      // real timestamp of previous sample
   }
 
   start() { this._connect(); }
@@ -271,7 +273,8 @@ class AccUdpClient {
       [_hud,  off] = this._rs(buf, off);   // currentHudPage
       const isReplay = buf[off]; off += 1;
       if (isReplay) off += 8;              // replaySessionTime + replayRemainingTime (2×float32)
-      off += 4;                            // timeOfDay float32
+      const timeOfDay = buf.readFloatLE(off); off += 4;  // seconds since midnight (game time)
+      this._updateTimeMultiplier(timeOfDay);
       ambientTemp = buf[off]; off += 1;
       trackTemp   = buf[off];
     } catch { /* older ACC — extended fields unavailable */ }
@@ -282,6 +285,25 @@ class AccUdpClient {
       ambientTemp, trackTemp,
       eventIndex, sessionIndex, sessionKey,
     });
+  }
+
+  /** Calculate game-time multiplier from timeOfDay progression */
+  _updateTimeMultiplier(tod) {
+    const now = Date.now();
+    if (this._todPrev >= 0 && tod > 0) {
+      const realDeltaS = (now - this._todRealMs) / 1000;
+      let gameDelta = tod - this._todPrev;
+      // Handle midnight wrap (86400 = seconds in a day)
+      if (gameDelta < -43200) gameDelta += 86400;
+      if (realDeltaS > 2 && gameDelta > 0) {
+        const mult = gameDelta / realDeltaS;
+        // Smooth: blend with previous value (avoid spikes)
+        const prev = this.store.session.timeMultiplier ?? mult;
+        this.store.session.timeMultiplier = prev * 0.8 + mult * 0.2;
+      }
+    }
+    this._todPrev = tod;
+    this._todRealMs = now;
   }
 
   /**
