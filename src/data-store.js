@@ -3,37 +3,49 @@
 const { CLASS_ORDER, getCarClass, getManufacturerAbbr } = require('./car-data');
 const { getNatFlag } = require('./nationality-data');
 
+const INV = 0x7FFFFFFF;   // ACC sentinel meaning "no valid lap time"
+
+const LAP_TYPE = {
+  OUT: 'OUT',
+  IN: 'IN',
+  NORMAL: 'NORMAL',
+  UNKNOWN: 'UNKNOWN',
+};
+
 class DataStore {
   constructor() {
-    this.connected    = false;
+    this.connected = false;
     this.connectionId = -1;
-    this.session      = {
+    this.session = {
       sessionType: -1, phase: 0, sessionTime: 0, sessionEndTime: 0,
       focusedCarIndex: -1,
       ambientTemp: undefined, trackTemp: undefined, trackGripStatus: undefined,
       rainNow: undefined, rainIn10: undefined, rainIn30: undefined,
       shmCurrentLapMs: -1, shmLastLapMs: -1, shmBestLapMs: -1,
     };
-    this.carEntries   = new Map();    // carIndex → entry
-    this.carRealtimes = new Map();    // carIndex → realtime
-    this.trackName    = '';
-    this.trackLength  = 0;
-    this.parseErrors  = 0;
+    this.carEntries = new Map(); // carIndex → entry
+    this.carRealtimes = new Map(); // carIndex → realtime
+    this.driverLapStates = new Map(); // driverKey → { lastLap, prevMeta }
+    this.liveryTeamNames = new Map(); // raceNumber → teamName (from local livery files)
+    this.trackName = '';
+    this.trackLength = 0;
+    this.parseErrors = 0;
     this.lastParseErr = '';
   }
 
   // ── Reset ─────────────────────────────────
   reset() {
-    this.connected    = false;
+    this.connected = false;
     this.connectionId = -1;
-    this.session      = {
+    this.session = {
       sessionType: -1, phase: 0, sessionTime: 0, sessionEndTime: 0,
       focusedCarIndex: -1,
     };
     this.carEntries.clear();
     this.carRealtimes.clear();
-    this.trackName    = '';
-    this.trackLength  = 0;
+    this.driverLapStates.clear();
+    this.trackName = '';
+    this.trackLength = 0;
   }
 
   // Session change on the SAME server — only realtime data changes.
@@ -42,45 +54,49 @@ class DataStore {
   // ongoing REALTIME_CAR_UPDATE stream.
   resetSessionCars() {
     this.carRealtimes.clear();
+    this.driverLapStates.clear();
   }
 
   // Full reset when reconnecting to a (potentially different) server.
   resetForNewServer() {
     this.carEntries.clear();
     this.carRealtimes.clear();
+    this.driverLapStates.clear();
   }
 
   // ── Writers ───────────────────────────────
-  setConnected(id)          { this.connected = true;  this.connectionId = id; }
-  setDisconnected()         { this.connected = false; this.connectionId = -1; }
-  updateSession(s)          { this.session = { ...this.session, ...s }; }
-  updateCarEntry(e)         { this.carEntries.set(e.carIndex, e); }
+  setConnected(id) { this.connected = true; this.connectionId = id; }
+  setDisconnected() { this.connected = false; this.connectionId = -1; }
+  updateSession(s) { this.session = { ...this.session, ...s }; }
+  updateCarEntry(e) { this.carEntries.set(e.carIndex, e); }
+  setLiveryTeamNames(map) { this.liveryTeamNames = map; }
   updateCarRealtime(rt) {
     const prev = this.carRealtimes.get(rt.carIndex);
     if (prev) {
-      // Preserve valid lap times — if the new read failed (=-1) or has no lap yet (=0x7FFFFFFF),
+      // Preserve valid lap times — if the new read failed (=-1) or has no lap yet (=INV),
       // keep the previously stored value so a bad packet doesn't wipe a good one.
-      if (!(rt.lastLapMs > 0 && rt.lastLapMs < 0x7FFFFFFF))
+      if (!(rt.lastLapMs > 0 && rt.lastLapMs < INV))
         rt.lastLapMs = prev.lastLapMs;
-      if (!(rt.bestSessionLapMs > 0 && rt.bestSessionLapMs < 0x7FFFFFFF))
+      if (!(rt.bestSessionLapMs > 0 && rt.bestSessionLapMs < INV))
         rt.bestSessionLapMs = prev.bestSessionLapMs;
     }
     this.carRealtimes.set(rt.carIndex, rt);
+    this._updateDriverLastLap(rt);
   }
-  updateTrack(name, len)    { this.trackName = name; this.trackLength = len; }
+  updateTrack(name, len) { this.trackName = name; this.trackLength = len; }
   // Called by SHM reader — all four weather fields from SPageFileGraphic
   updateShmWeather(grip, r0, r10, r30) {
     if (grip >= 0 && grip <= 6) this.session.trackGripStatus = grip;
-    if (r0  >= 0 && r0  <= 5) this.session.rainNow  = r0;
+    if (r0 >= 0 && r0 <= 5) this.session.rainNow = r0;
     if (r10 >= 0 && r10 <= 5) this.session.rainIn10 = r10;
     if (r30 >= 0 && r30 <= 5) this.session.rainIn30 = r30;
   }
 
   // Called by SHM reader — lap times from SPageFileGraphic (offsets 140/144/148)
   updateShmLapTimes(cur, last, best) {
-    if (cur  > 0) this.session.shmCurrentLapMs = cur;
-    if (last > 0) this.session.shmLastLapMs    = last;
-    if (best > 0) this.session.shmBestLapMs    = best;
+    if (cur > 0) this.session.shmCurrentLapMs = cur;
+    if (last > 0) this.session.shmLastLapMs = last;
+    if (best > 0) this.session.shmBestLapMs = best;
   }
 
   // ── Focused car lookup ────────────────────
@@ -88,42 +104,58 @@ class DataStore {
     const ci = this.session.focusedCarIndex;
     if (ci == null || ci < 0) return null;
     const entry = this.carEntries.get(ci);
-    const rt    = this.carRealtimes.get(ci);
+    const rt = this.carRealtimes.get(ci);
     if (!entry || !rt) return null;
 
     const driver = entry.drivers?.[entry.currentDriverIndex ?? 0] ?? entry.drivers?.[0];
-    const flag   = driver ? getNatFlag(driver.nationality) : '🏳️';
+    const flag = driver ? getNatFlag(driver.nationality) : '🏳️';
 
-    const shmLast  = this.session.shmLastLapMs;
-    const udpLast  = rt.lastLapMs;
-    let   lastLapMs = -1;
+    const shmLast = this.session.shmLastLapMs;
+    const udpLast = rt.lastLapMs;
+    let lastLapMs = -1;
     if (shmLast > 0 && shmLast < 0x7FFFFFFF) {
       lastLapMs = shmLast;
     } else if (udpLast > 0 && udpLast < 0x7FFFFFFF) {
       lastLapMs = udpLast;
     }
 
+    const lastLapInfo = getDriverLastLapForCar(this.driverLapStates, this.session, ci, entry, rt);
+
+    // Best lap in the same class as the focused car
+    const focusedClass = getCarClass(entry.carModelType);
+    let classBestLapMs = -1;
+    for (const [ci2, crt] of this.carRealtimes) {
+      const e2 = this.carEntries.get(ci2);
+      if (!e2 || getCarClass(e2.carModelType) !== focusedClass) continue;
+      const b = crt.bestSessionLapMs;
+      if (b > 0 && b < INV && (classBestLapMs < 0 || b < classBestLapMs)) classBestLapMs = b;
+    }
+
     return {
-      carIndex:         ci,
-      raceNumber:       entry.raceNumber,
-      driverText:       buildDriverText(entry),
-      teamName:         entry.teamName ?? '',
+      carIndex: ci,
+      raceNumber: entry.raceNumber,
+      driverText: buildDriverText(entry),
+      teamName: entry.teamName ?? '',
+      teamDisplayName: entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
       manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
-      bestLapMs:        rt.bestSessionLapMs ?? -1,
+      carClass: focusedClass,
+      bestLapMs: rt.bestSessionLapMs ?? -1,
+      classBestLapMs,
       lastLapMs,
-      classPosition:    rt.cupPosition      ?? 0,
-      overallPosition:  rt.position         ?? 0,
+      lastLapIsValid: lastLapInfo ? lastLapInfo.isValid : (rt.lastLapValidForBest ?? false),
+      classPosition: rt.cupPosition ?? 0,
+      overallPosition: rt.position ?? 0,
       flag,
     };
   }
 
   // ── Main standings builder ────────────────
   getStandings() {
-    const trackLength      = this.trackLength;
-    const focusedCarIndex  = this.session.focusedCarIndex ?? -1;
+    const trackLength = this.trackLength;
+    const focusedCarIndex = this.session.focusedCarIndex ?? -1;
     // Non-race: practice(0), qualifying(1), superpole(2), hotlap(4), hotstint(5), hotlap-superpole(6)
-    const QUALI_TYPES      = new Set([0, 1, 2, 4, 5, 6]);
-    const isRace           = !QUALI_TYPES.has(this.session.sessionType);
+    const QUALI_TYPES = new Set([0, 1, 2, 4, 5, 6]);
+    const isRace = !QUALI_TYPES.has(this.session.sessionType);
 
     // Merge entries + realtimes, filtering out cars with no useful data
     const allCars = [];
@@ -151,8 +183,8 @@ class DataStore {
 
     // Determine cap (10 per class in multiclass, 20 in single class)
     const activeClasses = CLASS_ORDER.filter(c => grouped[c]?.length > 0);
-    const isMulticlass  = activeClasses.length > 1;
-    const carCap        = isMulticlass ? 10 : 20;
+    const isMulticlass = activeClasses.length > 1;
+    const carCap = isMulticlass ? 10 : 20;
 
     // Build output per class
     const outClasses = {};
@@ -187,27 +219,33 @@ class DataStore {
           if (carBest > 0 && carBest < 0x7FFFFFFF && leaderBestMs > 0 && leaderBestMs < 0x7FFFFFFF) {
             gapText = formatLapDelta(carBest - leaderBestMs); gapLaps = 0;
           } else {
-            gapText = 'NO TIME'; gapLaps = 0;
+            gapText = '—'; gapLaps = 0;
           }
         }
 
+        const lastLapInfo = getDriverLastLapForCar(this.driverLapStates, this.session, car.carIndex, entry, rt);
+
         return {
-          carIndex:        car.carIndex,
-          raceNumber:      entry.raceNumber,
-          teamName:        entry.teamName ?? '',
-          driverText:      buildDriverText(entry),
+          carIndex: car.carIndex,
+          raceNumber: entry.raceNumber,
+          teamName: entry.teamName ?? '',
+          teamDisplayName: entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
+          driverText: buildDriverText(entry),
           manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
-          carModelType:    entry.carModelType,
-          classPosition:   classPos,
+          carModelType: entry.carModelType,
+          classPosition: classPos,
           overallPosition: rt.position,
-          laps:            rt.laps,
-          spline:          rt.splinePosition,
-          speedKmh:        rt.speedKmh,
+          laps: rt.laps,
+          spline: rt.splinePosition,
+          speedKmh: rt.speedKmh,
           gapText,
           gapLaps,
-          inPit:           [2, 3, 4].includes(rt.carLocation),
-          bestLapMs:       rt.bestSessionLapMs ?? -1,
-          isFocused:       car.carIndex === focusedCarIndex,
+          inPit: [2, 3, 4].includes(rt.carLocation),
+          bestLapMs: rt.bestSessionLapMs ?? -1,
+          lastLapMs: lastLapInfo ? lastLapInfo.lapTimeMs : (rt.lastLapMs > 0 && rt.lastLapMs < INV ? rt.lastLapMs : -1),
+          lastLapIsValid: lastLapInfo ? lastLapInfo.isValid : (rt.lastLapValidForBest ?? false),
+          lastLapType: lastLapInfo ? lastLapInfo.lapType : LAP_TYPE.UNKNOWN,
+          isFocused: car.carIndex === focusedCarIndex,
         };
       });
     }
@@ -215,25 +253,26 @@ class DataStore {
     return {
       connected: this.connected,
       session: {
-        type:            this.session.sessionType,
-        phase:           this.session.phase,
-        sessionTime:     this.session.sessionTime,
-        sessionEndTime:  this.session.sessionEndTime,
+        type: this.session.sessionType,
+        phase: this.session.phase,
+        sessionTime: this.session.sessionTime,
+        sessionEndTime: this.session.sessionEndTime,
         focusedCarIndex: this.session.focusedCarIndex ?? -1,
-        ambientTemp:     this.session.ambientTemp,
-        trackTemp:       this.session.trackTemp,
+        ambientTemp: this.session.ambientTemp,
+        trackTemp: this.session.trackTemp,
         trackGripStatus: this.session.trackGripStatus,
-        rainNow:         this.session.rainNow,
-        rainIn10:        this.session.rainIn10,
-        rainIn30:        this.session.rainIn30,
-        shmLastLapMs:    this.session.shmLastLapMs,
+        rainNow: this.session.rainNow,
+        rainIn10: this.session.rainIn10,
+        rainIn30: this.session.rainIn30,
+        shmLastLapMs: this.session.shmLastLapMs,
+        timeMultiplier: this.session.timeMultiplier,
       },
-      track:        { name: this.trackName, lengthM: this.trackLength },
-      classes:      outClasses,
-      focusedCar:   this._getFocusedCarData(),
-      entryCount:   this.carEntries.size,
+      track: { name: this.trackName, lengthM: this.trackLength },
+      classes: outClasses,
+      focusedCar: this._getFocusedCarData(),
+      entryCount: this.carEntries.size,
       realtimeCount: this.carRealtimes.size,
-      parseErrors:  this.parseErrors,
+      parseErrors: this.parseErrors,
       lastParseErr: this.lastParseErr,
     };
   }
@@ -245,7 +284,7 @@ function buildDriverText(entry) {
   if (!entry.drivers?.length) return '';
   return entry.drivers.map(d => {
     const fn = (d.firstName ?? '').trim();
-    const ln = (d.lastName  ?? '').trim();
+    const ln = (d.lastName ?? '').trim();
     return fn ? `${fn[0]}. ${ln}` : ln;
   }).join(' / ');
 }
@@ -261,7 +300,7 @@ function formatLapDelta(ms) {
 
 function computeGap(behind, ahead, trackLength) {
   const brt = behind.rt;
-  const art  = ahead.rt;
+  const art = ahead.rt;
   const lapDiff = art.laps - brt.laps;
 
   if (lapDiff >= 1) return [`+${lapDiff}L`, lapDiff];
@@ -288,5 +327,97 @@ function computeGap(behind, ahead, trackLength) {
   }
   return [`+${gapS.toFixed(1)}`, 0];
 }
+
+function makeSessionKey(session) {
+  const e = session?.eventIndex ?? -1;
+  const s = session?.sessionIndex ?? -1;
+  return `${e}_${s}`;
+}
+
+function makeDriverKey(session, carIndex, driverIndex) {
+  const sk = session?.sessionKey || makeSessionKey(session);
+  return `${sk}:${carIndex}:${driverIndex}`;
+}
+
+function mapLapType(raw, prevCarLocation, carLocation) {
+  if (raw === 0) return LAP_TYPE.OUT;
+  if (raw === 2) return LAP_TYPE.IN;
+  if (raw === 1) return LAP_TYPE.NORMAL;
+
+  if ([2, 3, 4].includes(prevCarLocation) && carLocation === 1) return LAP_TYPE.OUT;
+  if (prevCarLocation === 1 && [2, 3, 4].includes(carLocation)) return LAP_TYPE.IN;
+  return LAP_TYPE.UNKNOWN;
+}
+
+function getDriverFromEntry(entry, driverIndex) {
+  if (!entry?.drivers?.length) return null;
+  const idx = Math.min(Math.max(driverIndex ?? 0, 0), entry.drivers.length - 1);
+  return entry.drivers[idx];
+}
+
+function getDriverLastLapForCar(driverLapStates, session, carIndex, entry, rt) {
+  const driverIndex =
+    rt?.driverIndex ??
+    entry?.currentDriverIndex ??
+    0;
+  const key = makeDriverKey(session, carIndex, driverIndex);
+  const state = driverLapStates.get(key);
+  return state?.lastLap ?? null;
+}
+
+DataStore.prototype._updateDriverLastLap = function updateDriverLastLap(rt) {
+  const carIndex = rt.carIndex;
+  const entry = this.carEntries.get(carIndex);
+  const driverIndex = rt.driverIndex ?? entry?.currentDriverIndex ?? 0;
+
+  const key = makeDriverKey(this.session, carIndex, driverIndex);
+  let state = this.driverLapStates.get(key);
+
+  const prevLaps = state?.prevMeta?.lastSeenLaps ?? rt.laps;
+  const prevCarLocation = state?.prevMeta?.lastSeenCarLocation ?? rt.carLocation;
+
+  if (!state) {
+    state = {
+      lastLap: null,
+      prevMeta: {
+        lastSeenLaps: rt.laps,
+        lastSeenCarLocation: rt.carLocation,
+      },
+    };
+    this.driverLapStates.set(key, state);
+    return;
+  }
+
+  if (rt.laps > prevLaps && rt.lastLapMs > 0 && rt.lastLapMs < INV) {
+    const driver = getDriverFromEntry(entry, driverIndex);
+
+    const lapType = mapLapType(
+      rt.lastLapTypeRaw,
+      prevCarLocation,
+      rt.carLocation,
+    );
+
+    const isValid = !!rt.lastLapValidForBest && rt.lastLapMs > 0 && rt.lastLapMs < INV;
+
+    state.lastLap = {
+      sessionKey: makeSessionKey(this.session),
+      lapNumber: rt.laps,
+      lapTimeMs: rt.lastLapMs,
+      isValid,
+      lapType,
+      driverId: driver ? `${driver.firstName ?? ''} ${driver.lastName ?? ''}`.trim() || `#${entry?.raceNumber ?? carIndex}` : `#${entry?.raceNumber ?? carIndex}`,
+      carIndex,
+      driverIndex,
+      completedAt: Date.now(),
+    };
+  }
+
+  state.prevMeta = {
+    lastSeenLaps: rt.laps,
+    lastSeenCarLocation: rt.carLocation,
+  };
+
+  this.driverLapStates.set(key, state);
+};
 
 module.exports = DataStore;

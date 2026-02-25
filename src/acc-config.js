@@ -7,7 +7,12 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-const CONFIG_DIR  = path.join(os.homedir(), 'Documents', 'Assetto Corsa Competizione', 'Config');
+// ACC config may live under OneDrive-redirected Documents or the standard path
+const CANDIDATES = [
+  path.join(os.homedir(), 'OneDrive', 'Documents', 'Assetto Corsa Competizione', 'Config'),
+  path.join(os.homedir(), 'Documents', 'Assetto Corsa Competizione', 'Config'),
+];
+const CONFIG_DIR  = CANDIDATES.find(d => fs.existsSync(d)) ?? CANDIDATES[CANDIDATES.length - 1];
 const CONFIG_PATH = path.join(CONFIG_DIR, 'broadcasting.json');
 
 function ensureBroadcastEnabled(port = 9000) {
@@ -16,7 +21,14 @@ function ensureBroadcastEnabled(port = 9000) {
 
   try {
     existed = fs.existsSync(CONFIG_PATH);
-    if (existed) existing = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    if (existed) {
+      const raw = fs.readFileSync(CONFIG_PATH);
+      // ACC writes UTF-16 LE with BOM — detect and decode accordingly
+      const text = (raw[0] === 0xFF && raw[1] === 0xFE)
+        ? raw.toString('utf16le').replace(/^\uFEFF/, '')
+        : raw.toString('utf8').replace(/^\uFEFF/, '');
+      existing = JSON.parse(text);
+    }
   } catch {}
 
   // Already configured correctly — nothing to do
@@ -41,7 +53,9 @@ function ensureBroadcastEnabled(port = 9000) {
     maxConnections:     1,
   };
 
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+  // ACC writes UTF-16 LE with BOM — match that format
+  const json = JSON.stringify(config, null, '\t');
+  fs.writeFileSync(CONFIG_PATH, Buffer.from('\ufeff' + json, 'utf16le'));
   console.log(`[Config] Broadcasting enabled on port ${port} → ${CONFIG_PATH}`);
   return { modified: true, existed, path: CONFIG_PATH };
 }

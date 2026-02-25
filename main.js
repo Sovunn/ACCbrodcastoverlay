@@ -2,19 +2,21 @@
 
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, clipboard, screen, shell } = require('electron');
 const path    = require('path');
+const fs      = require('fs');
 const zlib    = require('zlib');
 const express = require('express');
 
 const DataStore    = require('./src/data-store');
 const AccUdpClient = require('./src/acc-udp');
-const AccShmReader = require('./src/acc-shm');
+const AccShmReader    = require('./src/acc-shm');
+const AccLiveryReader = require('./src/acc-livery');
 const { loadDemoData, startDemoSimulation } = require('./src/demo-data');
 const { ensureBroadcastEnabled, isAccRunning } = require('./src/acc-config');
 
 // ── CLI flags ─────────────────────────────────
 let IS_DEMO   = process.argv.includes('--demo');
 const OBS_PORT  = 5000;
-const OVERLAY_W = 450;
+const OVERLAY_W = 390;
 
 // ── State ─────────────────────────────────────
 let overlayWindow    = null;
@@ -35,17 +37,48 @@ let panels           = { standings: true, weather: false, driver: false };
 const store      = new DataStore();
 const sseClients = new Set();
 
+// ── Layout persistence ───────────────────────
+const LAYOUT_PATH = path.join(app.getPath('userData'), 'overlay-layout.json');
+const DEFAULT_POS = { overlay: { x: 20, y: 100 }, weather: { x: 20, y: 60 }, driver: { x: 20, y: 500 } };
+let savedLayout = {};
+
+function loadLayout() {
+  try {
+    savedLayout = JSON.parse(fs.readFileSync(LAYOUT_PATH, 'utf8'));
+  } catch { savedLayout = {}; }
+}
+
+let _saveTimer = null;
+function saveLayout() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _saveTimer = null;
+    const layout = { pos: {}, scale: {} };
+    for (const [key, win] of [['overlay', overlayWindow], ['weather', weatherWindow], ['driver', driverWindow]]) {
+      if (win && !win.isDestroyed()) {
+        const b = win.getBounds();
+        layout.pos[key] = { x: b.x, y: b.y };
+      }
+    }
+    layout.scale = { overlay: overlayScale, weather: weatherScale, driver: driverScale };
+    try { fs.writeFileSync(LAYOUT_PATH, JSON.stringify(layout)); } catch {}
+  }, 500);
+}
+
+function getPos(key) {
+  return savedLayout.pos?.[key] ?? DEFAULT_POS[key];
+}
+
 // ─────────────────────────────────────────────
 //  Overlay BrowserWindow
 // ─────────────────────────────────────────────
 function createOverlayWindow() {
+  const pos = getPos('overlay');
   overlayWindow = new BrowserWindow({
-    x:           20,
-    y:           100,
+    x:           pos.x,
+    y:           pos.y,
     width:       OVERLAY_W,
     height:      600,
-    minWidth:    OVERLAY_W,
-    maxWidth:    OVERLAY_W,
     transparent: true,
     frame:       false,
     alwaysOnTop: true,
@@ -63,6 +96,7 @@ function createOverlayWindow() {
   overlayWindow.setIgnoreMouseEvents(false);
   overlayWindow.loadFile('overlay/index.html');
 
+  overlayWindow.on('moved', () => saveLayout());
   overlayWindow.on('closed', () => { overlayWindow = null; overlayVisible = false; });
 }
 
@@ -70,9 +104,10 @@ function createOverlayWindow() {
 //  Weather BrowserWindow
 // ─────────────────────────────────────────────
 function createWeatherWindow() {
+  const pos = getPos('weather');
   weatherWindow = new BrowserWindow({
-    x:           20,
-    y:           60,
+    x:           pos.x,
+    y:           pos.y,
     width:       OVERLAY_W,
     height:      60,
     transparent: true,
@@ -90,6 +125,7 @@ function createWeatherWindow() {
   weatherWindow.setAlwaysOnTop(true, 'screen-saver');
   weatherWindow.setIgnoreMouseEvents(false);
   weatherWindow.loadFile('weather/index.html');
+  weatherWindow.on('moved', () => saveLayout());
   weatherWindow.on('closed', () => { weatherWindow = null; });
 }
 
@@ -97,9 +133,10 @@ function createWeatherWindow() {
 //  Driver BrowserWindow
 // ─────────────────────────────────────────────
 function createDriverWindow() {
+  const pos = getPos('driver');
   driverWindow = new BrowserWindow({
-    x:           20,
-    y:           500,
+    x:           pos.x,
+    y:           pos.y,
     width:       OVERLAY_W,
     height:      60,
     transparent: true,
@@ -117,6 +154,7 @@ function createDriverWindow() {
   driverWindow.setAlwaysOnTop(true, 'screen-saver');
   driverWindow.setIgnoreMouseEvents(false);
   driverWindow.loadFile('driver/index.html');
+  driverWindow.on('moved', () => saveLayout());
   driverWindow.on('closed', () => { driverWindow = null; });
 }
 
@@ -390,10 +428,11 @@ ipcMain.on('set-window-height', (event, h) => {
   if (!win) return;
   const scale = win === weatherWindow ? weatherScale
               : win === driverWindow  ? driverScale : overlayScale;
-  win.setSize(
-    Math.max(100, Math.round(OVERLAY_W * scale)),
-    Math.max(40,  Math.round(h * scale)),
-  );
+  const w = Math.max(100, Math.round(OVERLAY_W * scale));
+  const newH = Math.max(40,  Math.round(h * scale));
+  win.setResizable(true);
+  win.setSize(w, newH);
+  win.setResizable(false);
 });
 
 // Overlay IPC — sender-aware move (respects lock)
@@ -405,6 +444,7 @@ ipcMain.on('move-window', (event, { dx, dy }) => {
   if (!win) return;
   const b = win.getBounds();
   win.setBounds({ x: b.x + dx, y: b.y + dy, width: b.width, height: b.height });
+  saveLayout();
 });
 
 // Control window IPC
@@ -421,25 +461,31 @@ ipcMain.on('ctrl-toggle-demo', () => {
 });
 
 ipcMain.on('ctrl-reset-overlay', () => {
-  if (!overlayWindow) return;
-  const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
-  overlayWindow.setPosition(20, Math.floor(sh / 2) - 200);
+  for (const [key, win] of [['overlay', overlayWindow], ['weather', weatherWindow], ['driver', driverWindow]]) {
+    if (win && !win.isDestroyed()) {
+      const d = DEFAULT_POS[key];
+      win.setPosition(d.x, d.y);
+    }
+  }
+  try { fs.unlinkSync(LAYOUT_PATH); } catch {}
 });
 
 ipcMain.on('ctrl-set-scale', (_event, scale) => {
   overlayScale = clampScale(scale);
   sendOverlayConfig();
-  // Overlay will call set-window-height after receiving overlay-config
+  saveLayout();
 });
 
 ipcMain.on('ctrl-set-weather-scale', (_event, scale) => {
   weatherScale = clampScale(scale);
   sendWeatherConfig();
+  saveLayout();
 });
 
 ipcMain.on('ctrl-set-driver-scale', (_event, scale) => {
   driverScale = clampScale(scale);
   sendDriverConfig();
+  saveLayout();
 });
 
 ipcMain.on('ctrl-lock-overlay', (_event, locked) => {
@@ -475,6 +521,14 @@ ipcMain.on('ctrl-close', () => {
 //  App bootstrap
 // ─────────────────────────────────────────────
 app.whenReady().then(() => {
+  // Restore saved layout (positions + scales)
+  loadLayout();
+  if (savedLayout.scale) {
+    overlayScale = clampScale(savedLayout.scale.overlay);
+    weatherScale = clampScale(savedLayout.scale.weather);
+    driverScale  = clampScale(savedLayout.scale.driver);
+  }
+
   // Auto-configure ACC broadcasting.json
   // If ACC was already running AND we had to modify the file → user must restart ACC
   try {
@@ -503,6 +557,10 @@ app.whenReady().then(() => {
   // Always start SHM reader (grip status comes from shared memory, not UDP)
   const shmReader = new AccShmReader(store);
   shmReader.start();
+
+  // Read team names from local ACC livery files (fallback when UDP sends empty teamName)
+  const liveryReader = new AccLiveryReader(store);
+  liveryReader.start();
 
   if (IS_DEMO) {
     console.log('[Main] Demo mode — using fake race data');

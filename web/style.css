@@ -14,8 +14,8 @@ body {
 /* ── Outer wrapper ───────────────────────────── */
 #overlay {
   display: inline-block;
-  min-width: 440px;
-  max-width: 440px;
+  min-width: 390px;
+  max-width: 390px;
   user-select: none;
 }
 
@@ -96,7 +96,7 @@ body {
 }
 
 .driver-name {
-  font-size: 9px;
+  font-size: 11px;
   color: #999999;
   white-space: nowrap;
   overflow: hidden;
@@ -115,7 +115,7 @@ body {
 }
 
 .pit-label {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   color: #ffcc00;
   margin-top: 1px;
@@ -126,9 +126,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  min-width: 40px;
-  font-size: 8px;
+  width: 34px;
+  min-width: 34px;
+  font-size: 9px;
   font-weight: 700;
   color: #cccccc;
   letter-spacing: 0.5px;

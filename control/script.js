@@ -1,6 +1,6 @@
 'use strict';
 
-const SESSION_TYPES = { 0:'Practice', 1:'Qualifying', 2:'Superpole', 3:'Race', 4:'Hotlap', 5:'Hotstint' };
+const SESSION_TYPES = { 0:'Practice', 1:'Qualifying', 2:'Superpole', 3:'Race', 4:'Qualifying', 5:'Hotstint' };
 const PHASE_LABELS  = { 0:'Lobby', 1:'Starting', 2:'Pre-Formation', 3:'Formation Lap', 4:'Pre-Session', 5:'Live', 6:'Session Over', 7:'Post Session', 8:'Results' };
 
 // ── DOM refs ────────────────────────────────
@@ -171,6 +171,9 @@ document.getElementById('btn-scale-up').addEventListener('click', () => {
   window.accApi.setScale(currentScale);
   updateScaleUI();
 });
+
+// ── Reset position ───────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', () => window.accApi.resetOverlay());
 
 // ── Lock toggle ───────────────────────────────
 document.getElementById('btn-lock').addEventListener('click', () => {
