@@ -26,6 +26,7 @@ class DataStore {
     this.carEntries = new Map(); // carIndex → entry
     this.carRealtimes = new Map(); // carIndex → realtime
     this.driverLapStates = new Map(); // driverKey → { lastLap, prevMeta }
+    this.liveryTeamNames = new Map(); // raceNumber → teamName (from local livery files)
     this.trackName = '';
     this.trackLength = 0;
     this.parseErrors = 0;
@@ -68,6 +69,7 @@ class DataStore {
   setDisconnected() { this.connected = false; this.connectionId = -1; }
   updateSession(s) { this.session = { ...this.session, ...s }; }
   updateCarEntry(e) { this.carEntries.set(e.carIndex, e); }
+  setLiveryTeamNames(map) { this.liveryTeamNames = map; }
   updateCarRealtime(rt) {
     const prev = this.carRealtimes.get(rt.carIndex);
     if (prev) {
@@ -134,7 +136,7 @@ class DataStore {
       raceNumber: entry.raceNumber,
       driverText: buildDriverText(entry),
       teamName: entry.teamName ?? '',
-      teamDisplayName: entry.teamName?.trim() || getManufacturerAbbr(entry.carModelType),
+      teamDisplayName: entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
       manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
       carClass: focusedClass,
       bestLapMs: rt.bestSessionLapMs ?? -1,
@@ -227,7 +229,7 @@ class DataStore {
           carIndex: car.carIndex,
           raceNumber: entry.raceNumber,
           teamName: entry.teamName ?? '',
-          teamDisplayName: entry.teamName?.trim() || getManufacturerAbbr(entry.carModelType),
+          teamDisplayName: entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
           driverText: buildDriverText(entry),
           manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
           carModelType: entry.carModelType,

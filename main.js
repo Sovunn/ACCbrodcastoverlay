@@ -8,7 +8,8 @@ const express = require('express');
 
 const DataStore    = require('./src/data-store');
 const AccUdpClient = require('./src/acc-udp');
-const AccShmReader = require('./src/acc-shm');
+const AccShmReader    = require('./src/acc-shm');
+const AccLiveryReader = require('./src/acc-livery');
 const { loadDemoData, startDemoSimulation } = require('./src/demo-data');
 const { ensureBroadcastEnabled, isAccRunning } = require('./src/acc-config');
 
@@ -557,6 +558,10 @@ app.whenReady().then(() => {
   // Always start SHM reader (grip status comes from shared memory, not UDP)
   const shmReader = new AccShmReader(store);
   shmReader.start();
+
+  // Read team names from local ACC livery files (fallback when UDP sends empty teamName)
+  const liveryReader = new AccLiveryReader(store);
+  liveryReader.start();
 
   if (IS_DEMO) {
     console.log('[Main] Demo mode — using fake race data');
