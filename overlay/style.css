@@ -64,7 +64,8 @@ html, body {
 .car-row {
   display: flex;
   align-items: stretch;
-  height: 46px;
+  min-height: 46px;
+  height: auto;
   background: rgba(28,28,28,0.92);
 }
 .car-row:nth-child(even) { background: rgba(20,20,20,0.92); }
@@ -93,18 +94,32 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 10px 0 6px;   /* right padding increased 6→10 for more space before mfr */
+  padding: 5px 10px 5px 6px;
+  gap: 1px;
   overflow: hidden;
+  min-width: 0;
 }
 .driver-name {
   font-size: 12px; font-weight: 700; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
 }
+/* Team name — secondary line, broadcast style */
 .team-name {
-  font-size: 9px; color: #888;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  opacity: 0.85;
 }
-.pit-label { font-size: 8px; font-weight: 700; color: #ffcc00; }
+/* Auto-hide team name when data is absent */
+.team-name:empty { display: none; }
+.pit-label { font-size: 8px; font-weight: 700; color: #ffcc00; letter-spacing: 0.3px; }
 
 /* Manufacturer logo slot (shows text + optional logo) */
 .mfr {

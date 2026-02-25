@@ -148,15 +148,25 @@ class AccUdpClient {
   }
 
   /**
-   * Read LapInfo → [lapTimeMs, newOffset]
-   * Layout: lapTimeMs(int32) + splitCount(uint16) + splits(int32×n) + isInvalid(1) + isValidBest(1) + LapType(1)
+   * Read LapInfo → [lapInfo, newOffset]
+   * Layout:
+   *   lapTimeMs  : int32
+   *   splitCount : uint16
+   *   splits     : int32 × splitCount
+   *   isInvalid  : uint8
+   *   isValidBest: uint8
+   *   lapType    : uint8
+   *
    * Note: splitCount is uint16 (2 bytes) per the ACC broadcast SDK DeserializeList.
    */
   _rl(buf, off) {
-    const lapMs  = buf.readInt32LE(off);   off += 4;
-    const splits = buf.readUInt16LE(off);  off += 2;   // uint16, NOT uint8
-    off += splits * 4 + 3;   // sector times + 3 trailing bytes
-    return [lapMs, off];
+    const lapMs     = buf.readInt32LE(off);  off += 4;
+    const splits    = buf.readUInt16LE(off); off += 2;
+    off += splits * 4;
+    const isInvalid     = buf[off]; off += 1;
+    const isValidForBest = buf[off]; off += 1;
+    const lapType       = buf[off]; off += 1;
+    return [{ lapMs, isInvalid, isValidForBest, lapType }, off];
   }
 
   // ── Dispatcher ────────────────────────────────────────────────────────────
@@ -265,6 +275,7 @@ class AccUdpClient {
       sessionType, phase, sessionTime, sessionEndTime,
       focusedCarIndex,
       ambientTemp, trackTemp,
+      eventIndex, sessionIndex, sessionKey,
     });
   }
 
@@ -307,15 +318,38 @@ class AccUdpClient {
 
       // Read LapInfo: bestSessionLap first, then lastLap
       // Each try is independent so a failure on lastLap doesn't lose bestSessionLap
-      let bestSessionLapMs = -1, lastLapMs = -1, off2 = off;
-      try { [bestSessionLapMs, off2] = this._rl(buf, off);  } catch {}
-      try { [lastLapMs]              = this._rl(buf, off2); } catch {}
+      let bestSessionLapMs = -1;
+      let lastLapMs        = -1;
+      let lastLapValidForBest = undefined;
+      let lastLapTypeRaw      = undefined;
+      let off2 = off;
+      try {
+        const [bestLap, newOff] = this._rl(buf, off);
+        off2 = newOff;
+        if (bestLap && typeof bestLap.lapMs === 'number') {
+          bestSessionLapMs = bestLap.lapMs;
+        }
+      } catch {}
+      try {
+        const [lastLap] = this._rl(buf, off2);
+        if (lastLap && typeof lastLap.lapMs === 'number') {
+          lastLapMs = lastLap.lapMs;
+          // Treat "valid for best" and "not invalid" as our validity flag
+          if (typeof lastLap.isInvalid === 'number' && typeof lastLap.isValidForBest === 'number') {
+            lastLapValidForBest = !lastLap.isInvalid && !!lastLap.isValidForBest;
+          }
+          if (typeof lastLap.lapType === 'number') {
+            lastLapTypeRaw = lastLap.lapType;
+          }
+        }
+      } catch {}
 
       this.store.updateCarRealtime({
         carIndex, driverIndex, driverCount, gear,
         speedKmh, position, cupPosition, trackPosition,
         splinePosition, laps, delta, carLocation,
         bestSessionLapMs, lastLapMs,
+        lastLapValidForBest, lastLapTypeRaw,
       });
     } catch (e) {
       this.store.parseErrors++;

@@ -1,11 +1,11 @@
 'use strict';
 
 // ── Session labels ───────────────────────────
-const SESSION_LABELS = { '-1':'ACC', 0:'PRACTICE', 1:'QUALIFYING', 2:'SUPERPOLE', 3:'RACE', 4:'HOTLAP' };
-const CLASS_ORDER    = ['GT3','GT4','CUP','ST','TCX'];
+const SESSION_LABELS = { '-1': 'ACC', 0: 'PRACTICE', 1: 'QUALIFYING', 2: 'SUPERPOLE', 3: 'RACE', 4: 'HOTLAP' };
+const CLASS_ORDER = ['GT3', 'GT4', 'CUP', 'ST', 'TCX'];
 
 // ── Helpers ──────────────────────────────────
-function pad2(n) { return String(n).padStart(2,'0'); }
+function pad2(n) { return String(n).padStart(2, '0'); }
 
 function fmtLap(ms) {
   if (!ms || ms <= 0 || ms >= 0x7FFFFFFF) return '—';
@@ -21,7 +21,7 @@ function fmtTime(s) {
 }
 
 function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ── Panel state ───────────────────────────────
@@ -31,7 +31,7 @@ function applyPanels() {
   const wrapper = document.getElementById('standings-wrapper');
   if (!wrapper) return;
   if (panels.standings) wrapper.classList.remove('hidden');
-  else                  wrapper.classList.add('hidden');
+  else wrapper.classList.add('hidden');
 }
 
 // ── Render standings ──────────────────────────
@@ -46,7 +46,7 @@ function render(data) {
   // sessionEndTime counts DOWN (remaining); show it when positive, else show elapsed
   const timeToShow = session.sessionEndTime > 0 ? session.sessionEndTime : session.sessionTime;
   document.getElementById('session-time').textContent = fmtTime(timeToShow);
-  document.getElementById('track-name').textContent   = (track.name || '').toUpperCase();
+  document.getElementById('track-name').textContent = (track.name || '').toUpperCase();
 
   const container = document.getElementById('standings');
 
@@ -67,16 +67,16 @@ function render(data) {
     html += `<div class="class-header ${clsL}"><span class="class-label">| ${esc(cls)} CLASS</span></div>`;
 
     for (const car of cars) {
-      const pitCls   = car.inPit     ? ' in-pit'  : '';
+      const pitCls = car.inPit ? ' in-pit' : '';
       const focusCls = car.isFocused ? ' focused' : '';
-      const gapCls   = car.gapText === 'LEADER' ? 'leader'
-                     : (car.gapLaps > 0 || (car.gapText && car.gapText.includes('L'))) ? 'lapped' : '';
+      const gapCls = car.gapText === 'LEADER' ? 'leader'
+        : (car.gapLaps > 0 || (car.gapText && car.gapText.includes('L'))) ? 'lapped' : '';
 
       let rightCol;
       if (isRace) {
         rightCol = `<div class="gap ${gapCls}">${esc(car.gapText)}</div>`;
       } else {
-        const lapStr  = fmtLap(car.bestLapMs);
+        const lapStr = fmtLap(car.bestLapMs);
         const isLeader = car.gapText === 'LEADER';
         rightCol = `<div class="qual-col">
             <div class="best-lap">${lapStr}</div>
@@ -85,14 +85,14 @@ function render(data) {
       }
 
       const mfrAbbr = esc(car.manufacturerAbbr || '');
-      const mfrCls  = mfrAbbr ? ` mfr-${mfrAbbr.toLowerCase()}` : '';
+      const mfrCls = mfrAbbr ? ` mfr-${mfrAbbr.toLowerCase()}` : '';
 
       html += `
         <div class="car-row${pitCls}${focusCls}">
           <div class="pos-badge">${esc(car.classPosition)}</div>
           <div class="info">
             <div class="driver-name">${esc(car.driverText)}</div>
-            <div class="team-name">${esc(car.teamName)}</div>
+            <div class="team-name">${esc(car.teamDisplayName)}</div>
             ${car.inPit ? '<div class="pit-label">PIT</div>' : ''}
           </div>
           <div class="mfr${mfrCls}" aria-label="${mfrAbbr}">${mfrAbbr}</div>

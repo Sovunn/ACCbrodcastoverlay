@@ -1,6 +1,11 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-html, body {
+html,
+body {
   background: transparent;
   overflow: hidden;
   font-family: "Segoe UI", Arial, sans-serif;
@@ -11,88 +16,155 @@ html, body {
 #driver-root {
   display: inline-flex;
   align-items: center;
-  background: rgba(10,10,10,0.92);
-  height: 46px;
+  background: rgba(10, 10, 10, 0.92);
+  min-height: 46px;
+  height: auto;
   width: 450px;
   transform-origin: top left;
-  -webkit-app-region: drag;   /* native OS drag — zero latency */
+  -webkit-app-region: drag;
   cursor: grab;
   transition: opacity 140ms ease;
 }
-#driver-root.is-switching { opacity: 0; }
+
+#driver-root.is-switching {
+  opacity: 0;
+}
 
 /* Position badge */
 #db-pos {
-  width: 30px; min-width: 30px;
+  width: 30px;
+  min-width: 30px;
   background: #1a1a1a;
   color: #f59e0b;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
   height: 100%;
-  border-right: 1px solid rgba(255,255,255,0.07);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 /* Car number */
 #db-number {
-  width: 52px; min-width: 52px;
-  background: #fff; color: #111;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 900;
+  width: 52px;
+  min-width: 52px;
+  background: #fff;
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
   height: 100%;
 }
 
 /* Driver name + team */
 #db-info {
   flex: 1;
-  padding: 0 9px;
+  padding: 5px 9px;
   overflow: hidden;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
 }
+
 #db-driver {
-  font-size: 14px; font-weight: 700; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Secondary team name — broadcast approved style */
 #db-team {
-  font-size: 10px; color: #888;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-top: 1px;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+/* Auto-hide when the team name is empty */
+#db-team:empty {
+  display: none;
 }
 
 /* Generic separator */
 .db-sep {
-  width: 1px; min-width: 1px;
-  height: 70%; background: rgba(255,255,255,0.08);
+  width: 1px;
+  min-width: 1px;
+  height: 70%;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Lap times block */
 #db-laps {
   padding: 0 11px;
-  display: flex; flex-direction: column; gap: 1px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
+
 .db-lap-row {
-  display: flex; align-items: baseline; gap: 5px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   white-space: nowrap;
 }
+
 .db-key {
-  font-size: 8px; font-weight: 700;
-  color: #555; letter-spacing: 0.4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #555;
+  letter-spacing: 0.4px;
   width: 28px;
 }
-#db-best { font-size: 11px; font-weight: 700; color: #f59e0b; }  /* gold */
-#db-last { font-size: 11px; font-weight: 700; color: #e2e8f0; }  /* near-white */
+
+#db-best {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+/* gold */
+#db-last {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* near-white */
 
 /* Manufacturer + flag column */
 #db-right {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
   padding: 0 8px;
   min-width: 52px;
 }
+
 #db-brand {
-  font-size: 8px; font-weight: 700; color: #999;
-  text-align: center; letter-spacing: 0.3px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #999;
+  text-align: center;
+  letter-spacing: 0.3px;
 }
+
 #db-flag {
   width: 28px;
   height: 18px;
