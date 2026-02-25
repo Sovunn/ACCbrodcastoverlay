@@ -172,6 +172,9 @@ document.getElementById('btn-scale-up').addEventListener('click', () => {
   updateScaleUI();
 });
 
+// ── Reset position ───────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', () => window.accApi.resetOverlay());
+
 // ── Lock toggle ───────────────────────────────
 document.getElementById('btn-lock').addEventListener('click', () => {
   isLocked = !isLocked;
