@@ -84,6 +84,7 @@ function adjustHeight() {
 // ── Config ────────────────────────────────────
 window.accApi.onDriverConfig(({ scale }) => {
   document.getElementById('driver-root').style.transform = `scale(${scale})`;
+  _lastH = 0;   // force resize — transform:scale doesn't change offsetHeight
   adjustHeight();
 });
 

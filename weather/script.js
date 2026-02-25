@@ -66,6 +66,7 @@ function adjustHeight() {
 // ── Config (scale) ────────────────────────────
 window.accApi.onWeatherConfig(({ scale }) => {
   document.getElementById('weather-root').style.transform = `scale(${scale})`;
+  _lastH = 0;   // force resize — transform:scale doesn't change offsetHeight
   adjustHeight();
 });
 

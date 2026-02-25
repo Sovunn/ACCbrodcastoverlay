@@ -16,7 +16,7 @@ const { ensureBroadcastEnabled, isAccRunning } = require('./src/acc-config');
 // ── CLI flags ─────────────────────────────────
 let IS_DEMO   = process.argv.includes('--demo');
 const OBS_PORT  = 5000;
-const OVERLAY_W = 450;
+const OVERLAY_W = 390;
 
 // ── State ─────────────────────────────────────
 let overlayWindow    = null;
@@ -79,8 +79,6 @@ function createOverlayWindow() {
     y:           pos.y,
     width:       OVERLAY_W,
     height:      600,
-    minWidth:    OVERLAY_W,
-    maxWidth:    OVERLAY_W,
     transparent: true,
     frame:       false,
     alwaysOnTop: true,
@@ -430,10 +428,11 @@ ipcMain.on('set-window-height', (event, h) => {
   if (!win) return;
   const scale = win === weatherWindow ? weatherScale
               : win === driverWindow  ? driverScale : overlayScale;
-  win.setSize(
-    Math.max(100, Math.round(OVERLAY_W * scale)),
-    Math.max(40,  Math.round(h * scale)),
-  );
+  const w = Math.max(100, Math.round(OVERLAY_W * scale));
+  const newH = Math.max(40,  Math.round(h * scale));
+  win.setResizable(true);
+  win.setSize(w, newH);
+  win.setResizable(false);
 });
 
 // Overlay IPC — sender-aware move (respects lock)

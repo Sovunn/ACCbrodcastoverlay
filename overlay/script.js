@@ -151,6 +151,7 @@ window.accApi.onOverlayConfig((cfg) => {
     panels = cfg.panels;
     applyPanels();
   }
+  _lastH = 0;   // force resize — transform:scale doesn't change offsetHeight
   adjustHeight();
 });
 
