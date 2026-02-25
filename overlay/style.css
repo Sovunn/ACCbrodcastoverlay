@@ -1,0 +1,170 @@
+/* ──────────────────────────────────────────────
+   ACC Overlay — Transparent Electron window
+   ────────────────────────────────────────────── */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: transparent;
+  overflow: visible;   /* allow scale-up to not clip before window resize catches up */
+  font-family: "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ── Draggable handle (session header) ────── */
+.drag-handle { -webkit-app-region: drag; }
+
+/* ── Outer wrapper ────────────────────────── */
+#overlay {
+  display: inline-block;
+  width: 450px;
+  transform-origin: top left;   /* scale anchors to top-left corner */
+}
+
+/* ── Session header ───────────────────────── */
+#session-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(10,10,10,0.92);
+  padding: 5px 10px;
+  height: 28px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+#session-type  { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+#session-time  { font-size: 11px; font-weight: 700; color: #fff; }
+#track-name    { font-size: 10px; color: #888; margin-left: auto; }
+
+/* ── Class section ────────────────────────── */
+.class-section { margin-bottom: 1px; }
+
+.class-header {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  background: rgba(13,13,13,0.92);
+  padding: 0 8px;
+  border-left: 4px solid #eb0000;
+}
+.class-header.gt4  { border-left-color: #eb7900; }
+.class-header.cup  { border-left-color: #0055cc; }
+.class-header.st   { border-left-color: #006600; }
+.class-header.tcx  { border-left-color: #0089eb; }
+
+.class-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* ── Car row ──────────────────────────────── */
+.car-row {
+  display: flex;
+  align-items: stretch;
+  height: 46px;
+  background: rgba(28,28,28,0.92);
+}
+.car-row:nth-child(even) { background: rgba(20,20,20,0.92); }
+.car-row.in-pit          { background: rgba(26,26,0,0.92); }
+
+/* Position badge */
+.pos-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  background: #eb0000;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.class-gt4 .pos-badge { background: #eb7900; }
+.class-cup .pos-badge { background: #0055cc; }
+.class-st  .pos-badge { background: #006600; }
+.class-tcx .pos-badge { background: #0089eb; }
+
+/* Info block */
+.info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 10px 0 6px;   /* right padding increased 6→10 for more space before mfr */
+  overflow: hidden;
+}
+.driver-name {
+  font-size: 12px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.team-name {
+  font-size: 9px; color: #888;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pit-label { font-size: 8px; font-weight: 700; color: #ffcc00; }
+
+/* Manufacturer */
+.mfr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #aaa;
+  letter-spacing: 0.4px;
+  border-left: 1px solid rgba(255,255,255,0.06);   /* subtle separator from name block */
+}
+
+/* Car number */
+.car-num {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; min-width: 46px; padding: 8px 3px;
+}
+.car-num-inner {
+  background: #fff; color: #111;
+  font-size: 11px; font-weight: 700;
+  border-radius: 2px; width: 100%; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Gap — race */
+.gap {
+  display: flex; align-items: center; justify-content: center;
+  width: 72px; min-width: 72px;
+  font-size: 11px; font-weight: 700;
+  color: #ff9900;
+}
+.gap.leader { color: #fff; font-size: 9px; letter-spacing: 0.5px; }
+.gap.lapped { color: #ff4444; }
+
+/* Quali / Practice right column */
+.qual-col {
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+  width: 72px; min-width: 72px; padding-right: 8px; gap: 1px;
+}
+.best-lap {
+  font-size: 11px; font-weight: 700; color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.gap-delta {
+  font-size: 9px; font-weight: 700; color: #ff9900;
+  font-variant-numeric: tabular-nums;
+}
+.gap-delta.lapped { color: #ff4444; }
+
+/* Waiting */
+.waiting {
+  height: 46px; display: flex; align-items: center; justify-content: center;
+  background: rgba(28,28,28,0.92); color: #555; font-size: 12px;
+}
+
+/* Focused car highlight */
+.car-row.focused { background: rgba(40,40,20,0.95) !important; outline: 1px solid rgba(255,200,0,0.3); }
+
+/* ── Panel visibility ──────────────────────── */
+.panel.hidden { display: none !important; }

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Weather</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="weather-root">
+    <div class="wb-slot">
+      <div class="wb-icon" id="wb-icon-now">☀</div>
+      <div class="wb-label">NOW</div>
+    </div>
+    <div class="wb-slot">
+      <div class="wb-icon" id="wb-icon-10">☀</div>
+      <div class="wb-label">+10'</div>
+    </div>
+    <div class="wb-slot">
+      <div class="wb-icon" id="wb-icon-30">☀</div>
+      <div class="wb-label">+30'</div>
+    </div>
+    <div class="wb-sep"></div>
+    <div class="wb-item">
+      <span class="wb-key">TRACK</span>
+      <span id="wb-grip">—</span>
+    </div>
+    <div class="wb-sep"></div>
+    <div class="wb-item">
+      <span class="wb-key">AIR / TRACK</span>
+      <span id="wb-temps">—</span>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>ACC Overlay</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="overlay">
+
+    <!-- ── Session header (drag handle) ── -->
+    <div id="session-header" class="drag-handle">
+      <span id="session-type">ACC</span>
+      <span id="session-time"></span>
+      <span id="track-name"></span>
+    </div>
+
+    <!-- ── Standings (wrapper for panel visibility toggle) ── -->
+    <div id="standings-wrapper" class="panel">
+      <div id="standings"></div>
+    </div>
+
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

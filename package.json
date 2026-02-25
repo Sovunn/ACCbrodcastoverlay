@@ -1,0 +1,45 @@
+{
+  "name": "acc-overlay",
+  "version": "1.0.0",
+  "description": "ACC Multiclass Racing Standings Overlay",
+  "main": "main.js",
+  "scripts": {
+    "start":       "electron .",
+    "start:demo":  "electron . --demo",
+    "build":       "electron-builder"
+  },
+  "dependencies": {
+    "express": "^4.18.3"
+  },
+  "devDependencies": {
+    "electron":         "^29.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId":       "com.accoverlay.app",
+    "productName": "ACC Overlay",
+    "copyright":   "ACC Overlay",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "overlay/**/*",
+      "weather/**/*",
+      "driver/**/*",
+      "control/**/*",
+      "web/**/*",
+      "!node_modules/.cache"
+    ],
+    "win": {
+      "target": [
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "dir",      "arch": ["x64"] }
+      ],
+      "signAndEditExecutable": false,
+      "signDlls":              false
+    }
+  }
+}

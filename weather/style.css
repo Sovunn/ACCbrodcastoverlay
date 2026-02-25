@@ -1,0 +1,36 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: transparent;
+  overflow: hidden;
+  font-family: "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#weather-root {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(10,10,10,0.92);
+  height: 54px;
+  width: 450px;
+  padding: 0 12px;
+  gap: 8px;
+  transform-origin: top left;
+  -webkit-app-region: drag;   /* native OS drag — zero latency */
+  cursor: grab;
+}
+
+.wb-slot {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 46px;
+}
+.wb-icon  { font-size: 26px; line-height: 1; filter: grayscale(1) brightness(0) invert(1); }
+.wb-label { font-size: 8px; font-weight: 700; color: #666; letter-spacing: 0.5px; }
+
+.wb-sep { width: 1px; height: 28px; background: #2a2a2a; flex-shrink: 0; }
+
+.wb-item { display: flex; flex-direction: column; gap: 2px; }
+.wb-key  { font-size: 8px; color: #555; font-weight: 700; letter-spacing: 0.5px; }
+#wb-grip  { font-size: 11px; font-weight: 700; color: #fff; }
+#wb-temps { font-size: 11px; font-weight: 700; color: #fff; }

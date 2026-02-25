@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Driver</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="driver-root">
+
+    <!-- Position badge -->
+    <div id="db-pos">—</div>
+
+    <!-- Car number -->
+    <div id="db-number">—</div>
+
+    <!-- Driver name + team -->
+    <div id="db-info">
+      <div id="db-driver">—</div>
+      <div id="db-team">—</div>
+    </div>
+
+    <!-- Divider -->
+    <div class="db-sep"></div>
+
+    <!-- Lap times -->
+    <div id="db-laps">
+      <div class="db-lap-row">
+        <span class="db-key">BEST</span>
+        <span id="db-best">—</span>
+      </div>
+      <div class="db-lap-row">
+        <span class="db-key">LAST</span>
+        <span id="db-last">—</span>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="db-sep"></div>
+
+    <!-- Manufacturer + flag -->
+    <div id="db-right">
+      <div id="db-brand">—</div>
+      <div id="db-flag"></div>
+    </div>
+
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

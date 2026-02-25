@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"/>
+  <title>ACC Overlay</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- ── Custom title bar ── -->
+  <div id="titlebar">
+    <div id="titlebar-logo">
+      <div id="logo-dot"></div>
+      <span id="titlebar-text">ACC OVERLAY</span>
+    </div>
+    <div id="titlebar-controls">
+      <button class="wbtn" id="btn-minimize" title="Minimise">&#x2013;</button>
+      <button class="wbtn close" id="btn-close" title="Close">&#x2715;</button>
+    </div>
+  </div>
+
+  <!-- ── Restart warning (hidden by default) ── -->
+  <div id="restart-warning" class="hidden">
+    ⚠ ACC was already running — please restart ACC for broadcasting to activate
+  </div>
+
+  <!-- ── Status card ── -->
+  <div id="status-card">
+    <div id="status-indicator" class="off"></div>
+    <div id="status-info">
+      <div id="status-label">WAITING FOR ACC</div>
+      <div id="status-sub">Launch ACC to connect automatically</div>
+    </div>
+  </div>
+
+  <!-- ── Session details ── -->
+  <div id="session-grid">
+    <div class="sg-row">
+      <span class="sg-key">Track</span>
+      <span class="sg-val" id="val-track">—</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-key">Session</span>
+      <span class="sg-val" id="val-session">—</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-key">Cars</span>
+      <span class="sg-val" id="val-cars">—</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-key">Overlay</span>
+      <span class="sg-val" id="val-overlay">Hidden</span>
+    </div>
+    <div class="sg-row">
+      <span class="sg-key">Debug</span>
+      <span class="sg-val" id="val-debug" style="font-size:10px;color:#888">—</span>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- ── Action buttons ── -->
+  <div id="actions">
+    <button class="btn primary" id="btn-toggle-overlay">Show Overlay</button>
+    <button class="btn" id="btn-obs">Copy OBS URL</button>
+    <button class="btn" id="btn-demo">Demo</button>
+  </div>
+
+  <div class="sep" style="margin-top:8px"></div>
+
+  <!-- ── Overlay controls (scale + lock) ── -->
+  <div id="overlay-controls">
+    <div id="scale-wrap">
+      <span class="oc-label">Scale</span>
+      <button class="scale-btn" id="btn-scale-down">−</button>
+      <span id="scale-val">100%</span>
+      <button class="scale-btn" id="btn-scale-up">+</button>
+    </div>
+    <button class="btn" id="btn-lock">🔒 Lock</button>
+  </div>
+
+  <!-- ── Panel toggles + per-panel scale ── -->
+  <div id="panel-controls">
+    <div class="pc-row">
+      <span class="oc-label">Panels</span>
+      <button class="panel-btn active" id="pbtn-standings">Standings</button>
+    </div>
+    <div class="pc-row">
+      <button class="panel-btn" id="pbtn-weather">Weather</button>
+      <button class="scale-btn" id="btn-weather-down">−</button>
+      <span class="ps-val" id="weather-scale-val">100%</span>
+      <button class="scale-btn" id="btn-weather-up">+</button>
+    </div>
+    <div class="pc-row">
+      <button class="panel-btn" id="pbtn-driver">Driver</button>
+      <button class="scale-btn" id="btn-driver-down">−</button>
+      <span class="ps-val" id="driver-scale-val">100%</span>
+      <button class="scale-btn" id="btn-driver-up">+</button>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div id="footer">
+    <span id="obs-hint">OBS: http://127.0.0.1:5000</span>
+    <span id="version">v1.0.0</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
