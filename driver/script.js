@@ -14,7 +14,14 @@ let switchTimer = null;
 
 function updateContent(car) {
   document.getElementById('db-pos').textContent = car.classPosition > 0 ? `P${car.classPosition}` : '—';
-  document.getElementById('db-number').textContent = car.raceNumber ?? '—';
+  const numEl = document.getElementById('db-number');
+  numEl.textContent = car.raceNumber ?? '—';
+  // Class-colored number background
+  const CLASS_COLORS = { GT3: '#fff', GT4: '#eb7900', CUP: '#0055cc', ST: '#006600', TCX: '#0089eb' };
+  const cls = car.carClass || 'GT3';
+  numEl.style.background = CLASS_COLORS[cls] || '#fff';
+  numEl.style.color = cls === 'GT3' ? '#111' : '#fff';
+
   document.getElementById('db-driver').textContent = car.driverText || '—';
   document.getElementById('db-team').textContent = car.teamDisplayName || car.teamName || '';
   document.getElementById('db-brand').textContent = car.manufacturerAbbr || '—';
@@ -23,8 +30,8 @@ function updateContent(car) {
   bestEl.textContent = bestStr;
   if (bestStr === '—') {
     bestEl.style.color = '';
-  } else if (car.bestLapMs > 0 && car.bestLapMs === car.sessionBestLapMs) {
-    bestEl.style.color = '#c084fc'; // purple — session best
+  } else if (car.bestLapMs > 0 && car.bestLapMs === car.classBestLapMs) {
+    bestEl.style.color = '#c084fc'; // purple — class best
   } else {
     bestEl.style.color = '#4ade80'; // green — personal best
   }

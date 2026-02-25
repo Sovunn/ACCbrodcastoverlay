@@ -119,11 +119,14 @@ class DataStore {
 
     const lastLapInfo = getDriverLastLapForCar(this.driverLapStates, this.session, ci, entry, rt);
 
-    // Session-wide best lap across all cars
-    let sessionBestLapMs = -1;
-    for (const [, crt] of this.carRealtimes) {
+    // Best lap in the same class as the focused car
+    const focusedClass = getCarClass(entry.carModelType);
+    let classBestLapMs = -1;
+    for (const [ci2, crt] of this.carRealtimes) {
+      const e2 = this.carEntries.get(ci2);
+      if (!e2 || getCarClass(e2.carModelType) !== focusedClass) continue;
       const b = crt.bestSessionLapMs;
-      if (b > 0 && b < INV && (sessionBestLapMs < 0 || b < sessionBestLapMs)) sessionBestLapMs = b;
+      if (b > 0 && b < INV && (classBestLapMs < 0 || b < classBestLapMs)) classBestLapMs = b;
     }
 
     return {
@@ -133,8 +136,9 @@ class DataStore {
       teamName: entry.teamName ?? '',
       teamDisplayName: entry.teamName?.trim() || getManufacturerAbbr(entry.carModelType),
       manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
+      carClass: focusedClass,
       bestLapMs: rt.bestSessionLapMs ?? -1,
-      sessionBestLapMs,
+      classBestLapMs,
       lastLapMs,
       lastLapIsValid: lastLapInfo ? lastLapInfo.isValid : (rt.lastLapValidForBest ?? false),
       classPosition: rt.cupPosition ?? 0,
