@@ -33,7 +33,7 @@ const GT4 = [
 function loadDemoData(store) {
   store.updateTrack('Monza', 5793);
   store.setConnected(1);
-  store.updateSession({ sessionType: 3, phase: 5, sessionTime: 4379, sessionEndTime: 0 });
+  store.updateSession({ sessionType: 3, phase: 5, sessionTime: 4379, sessionEndTime: 0, focusedCarIndex: 0 });
 
   let carIdx = 0;
 
@@ -74,6 +74,11 @@ function loadDemoData(store) {
 
 function startDemoSimulation(store) {
   const start = Date.now();
+  // Track previous spline to detect lap completions
+  const prevSpline = new Map();
+  for (const [ci, rt] of store.carRealtimes) {
+    prevSpline.set(ci, rt.splinePosition);
+  }
 
   return setInterval(() => {
     const elapsed = (Date.now() - start) / 1000;
@@ -84,7 +89,27 @@ function startDemoSimulation(store) {
     // Slowly advance all cars' spline positions
     for (const [ci, rt] of store.carRealtimes) {
       const drift = Math.sin(elapsed * 0.08 + ci * 0.9) * 0.002;
+      const oldSpline = rt.splinePosition;
       rt.splinePosition = (rt.splinePosition + 0.00012 + drift + 1) % 1;
+
+      // Detect lap completion (spline wrapped around)
+      if (rt.splinePosition < oldSpline - 0.5) {
+        const entry = store.carEntries.get(ci);
+        const lapTime = 103000 + Math.floor(Math.random() * 4000);
+        const isInvalid = Math.random() < 0.3 ? 1 : 0;
+        store.updateCarRealtime({
+          ...rt,
+          carIndex: ci,
+          laps: rt.laps + 1,
+          lastLapMs: lapTime,
+          lastLapValidForBest: isInvalid ? 0 : 1,
+          lastLapTypeRaw: 1,
+          driverIndex: entry?.currentDriverIndex ?? 0,
+          driverCount: entry?.drivers?.length ?? 1,
+        });
+      }
+
+      prevSpline.set(ci, rt.splinePosition);
     }
   }, 250);
 }

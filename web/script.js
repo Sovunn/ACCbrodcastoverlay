@@ -35,7 +35,7 @@ function render(data) {
   const sType = SESSION_LABELS[data.session.type] ?? "RACE";
   document.getElementById("session-type").textContent = sType;
   document.getElementById("session-time").textContent =
-    fmtTime(data.session.session_time);
+    fmtTime(data.session.sessionTime);
   document.getElementById("track-name").textContent =
     (data.track.name || "").toUpperCase();
 
@@ -60,24 +60,24 @@ function render(data) {
              </div>`;
 
     for (const car of cars) {
-      const pitClass  = car.in_pit ? " in-pit" : "";
-      const gapClass  = car.gap_text === "LEADER" ? "leader"
-                      : (car.gap_laps > 0 || car.gap_text.includes("L")) ? "lapped"
+      const pitClass  = car.inPit ? " in-pit" : "";
+      const gapClass  = car.gapText === "LEADER" ? "leader"
+                      : (car.gapLaps > 0 || car.gapText.includes("L")) ? "lapped"
                       : "";
 
       html += `
         <div class="car-row${pitClass}">
-          <div class="pos-badge">${esc(car.class_position)}</div>
+          <div class="pos-badge">${esc(car.classPosition)}</div>
           <div class="info">
-            <div class="driver-name">${esc(car.driver_text)}</div>
-            <div class="team-name">${esc(car.team_name)}</div>
-            ${car.in_pit ? '<div class="pit-label">PIT</div>' : ""}
+            <div class="driver-name">${esc(car.driverText)}</div>
+            <div class="team-name">${esc(car.teamName)}</div>
+            ${car.inPit ? '<div class="pit-label">PIT</div>' : ""}
           </div>
-          <div class="mfr">${esc(car.manufacturer_abbr)}</div>
+          <div class="mfr">${esc(car.manufacturerAbbr)}</div>
           <div class="car-num">
-            <div class="car-num-inner">${esc(car.race_number)}</div>
+            <div class="car-num-inner">${esc(car.raceNumber)}</div>
           </div>
-          <div class="gap ${gapClass}">${esc(car.gap_text)}</div>
+          <div class="gap ${gapClass}">${esc(car.gapText)}</div>
         </div>`;
     }
 

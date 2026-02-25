@@ -149,23 +149,28 @@ class AccUdpClient {
 
   /**
    * Read LapInfo → [lapInfo, newOffset]
-   * Layout:
-   *   lapTimeMs  : int32
-   *   splitCount : uint16
-   *   splits     : int32 × splitCount
-   *   isInvalid  : uint8
-   *   isValidBest: uint8
-   *   lapType    : uint8
-   *
-   * Note: splitCount is uint16 (2 bytes) per the ACC broadcast SDK DeserializeList.
+   * Layout (per Kunos C# SDK):
+   *   lapTimeMs    : int32
+   *   carIndex     : uint16
+   *   driverIndex  : uint16
+   *   splitCount   : uint8   (NOT uint16)
+   *   splits       : int32 × splitCount
+   *   isInvalid    : uint8
+   *   isValidForBest: uint8
+   *   isOutlap     : uint8
+   *   isInlap      : uint8
    */
   _rl(buf, off) {
-    const lapMs     = buf.readInt32LE(off);  off += 4;
-    const splits    = buf.readUInt16LE(off); off += 2;
-    off += splits * 4;
-    const isInvalid     = buf[off]; off += 1;
+    const lapMs        = buf.readInt32LE(off);  off += 4;
+    /* carIndex */                               off += 2;
+    /* driverIndex */                            off += 2;
+    const splitCount   = buf[off];               off += 1;
+    off += splitCount * 4;
+    const isInvalid      = buf[off]; off += 1;
     const isValidForBest = buf[off]; off += 1;
-    const lapType       = buf[off]; off += 1;
+    const isOutlap       = buf[off]; off += 1;
+    const isInlap        = buf[off]; off += 1;
+    const lapType = isOutlap ? 0 : isInlap ? 2 : 1; // 0=OUT, 1=NORMAL, 2=IN
     return [{ lapMs, isInvalid, isValidForBest, lapType }, off];
   }
 
@@ -343,6 +348,7 @@ class AccUdpClient {
           }
         }
       } catch {}
+
 
       this.store.updateCarRealtime({
         carIndex, driverIndex, driverCount, gear,

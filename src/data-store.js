@@ -117,6 +117,15 @@ class DataStore {
       lastLapMs = udpLast;
     }
 
+    const lastLapInfo = getDriverLastLapForCar(this.driverLapStates, this.session, ci, entry, rt);
+
+    // Session-wide best lap across all cars
+    let sessionBestLapMs = -1;
+    for (const [, crt] of this.carRealtimes) {
+      const b = crt.bestSessionLapMs;
+      if (b > 0 && b < INV && (sessionBestLapMs < 0 || b < sessionBestLapMs)) sessionBestLapMs = b;
+    }
+
     return {
       carIndex: ci,
       raceNumber: entry.raceNumber,
@@ -125,7 +134,9 @@ class DataStore {
       teamDisplayName: entry.teamName?.trim() || getManufacturerAbbr(entry.carModelType),
       manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
       bestLapMs: rt.bestSessionLapMs ?? -1,
+      sessionBestLapMs,
       lastLapMs,
+      lastLapIsValid: lastLapInfo ? lastLapInfo.isValid : (rt.lastLapValidForBest ?? false),
       classPosition: rt.cupPosition ?? 0,
       overallPosition: rt.position ?? 0,
       flag,
@@ -202,7 +213,7 @@ class DataStore {
           if (carBest > 0 && carBest < 0x7FFFFFFF && leaderBestMs > 0 && leaderBestMs < 0x7FFFFFFF) {
             gapText = formatLapDelta(carBest - leaderBestMs); gapLaps = 0;
           } else {
-            gapText = 'NO TIME'; gapLaps = 0;
+            gapText = '—'; gapLaps = 0;
           }
         }
 
@@ -225,8 +236,8 @@ class DataStore {
           gapLaps,
           inPit: [2, 3, 4].includes(rt.carLocation),
           bestLapMs: rt.bestSessionLapMs ?? -1,
-          lastLapMs: lastLapInfo ? lastLapInfo.lapTimeMs : -1,
-          lastLapIsValid: lastLapInfo ? lastLapInfo.isValid : false,
+          lastLapMs: lastLapInfo ? lastLapInfo.lapTimeMs : (rt.lastLapMs > 0 && rt.lastLapMs < INV ? rt.lastLapMs : -1),
+          lastLapIsValid: lastLapInfo ? lastLapInfo.isValid : (rt.lastLapValidForBest ?? false),
           lastLapType: lastLapInfo ? lastLapInfo.lapType : LAP_TYPE.UNKNOWN,
           isFocused: car.carIndex === focusedCarIndex,
         };

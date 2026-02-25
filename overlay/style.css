@@ -12,6 +12,9 @@ html, body {
   user-select: none;
 }
 
+/* Hide Windows scrollbars while keeping overflow visible */
+::-webkit-scrollbar { display: none; }
+
 /* ── Draggable handle (session header) ────── */
 .drag-handle { -webkit-app-region: drag; }
 

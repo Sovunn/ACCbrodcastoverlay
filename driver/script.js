@@ -18,18 +18,26 @@ function updateContent(car) {
   document.getElementById('db-driver').textContent = car.driverText || '—';
   document.getElementById('db-team').textContent = car.teamDisplayName || car.teamName || '';
   document.getElementById('db-brand').textContent = car.manufacturerAbbr || '—';
-  document.getElementById('db-best').textContent = fmtLap(car.bestLapMs);
+  const bestEl = document.getElementById('db-best');
+  const bestStr = fmtLap(car.bestLapMs);
+  bestEl.textContent = bestStr;
+  if (bestStr === '—') {
+    bestEl.style.color = '';
+  } else if (car.bestLapMs > 0 && car.bestLapMs === car.sessionBestLapMs) {
+    bestEl.style.color = '#c084fc'; // purple — session best
+  } else {
+    bestEl.style.color = '#4ade80'; // green — personal best
+  }
 
   const lastEl = document.getElementById('db-last');
   const lastStr = fmtLap(car.lastLapMs);
   lastEl.textContent = lastStr;
-  // Valid lap → green, invalid/unknown → muted grey (matches existing #db-last near-white base)
   if (lastStr === '—') {
-    lastEl.style.color = '';          // reset to CSS default (near-white)
+    lastEl.style.color = '';          // reset to CSS default
   } else if (car.lastLapIsValid) {
-    lastEl.style.color = '#4ade80';   // green
+    lastEl.style.color = '#fb923c';   // orange / valid
   } else {
-    lastEl.style.color = '#64748b';   // muted/invalid grey
+    lastEl.style.color = '#ef4444';   // red / invalid
   }
 }
 
