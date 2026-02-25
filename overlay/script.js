@@ -84,6 +84,9 @@ function render(data) {
           </div>`;
       }
 
+      const mfrAbbr = esc(car.manufacturerAbbr || '');
+      const mfrCls  = mfrAbbr ? ` mfr-${mfrAbbr.toLowerCase()}` : '';
+
       html += `
         <div class="car-row${pitCls}${focusCls}">
           <div class="pos-badge">${esc(car.classPosition)}</div>
@@ -92,7 +95,7 @@ function render(data) {
             <div class="team-name">${esc(car.teamName)}</div>
             ${car.inPit ? '<div class="pit-label">PIT</div>' : ''}
           </div>
-          <div class="mfr">${esc(car.manufacturerAbbr)}</div>
+          <div class="mfr${mfrCls}" aria-label="${mfrAbbr}">${mfrAbbr}</div>
           <div class="car-num"><div class="car-num-inner">${esc(car.raceNumber)}</div></div>
           ${rightCol}
         </div>`;

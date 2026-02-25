@@ -3,20 +3,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  ACC Shared Memory Reader  (SPageFileGraphic  →  Local\acpmf_graphics)
 //
-//  Reads fields from SPageFileGraphic:
+//  Reads `lastTime` from SPageFileGraphic:
 //
-//    Offset 140  iCurrentTime         float (ms) — current lap time
-//    Offset 144  iLastTime            float (ms) — last completed lap
-//    Offset 148  iBestTime            float (ms) — best session lap
+//    Offset 212  lastTime (int32 ms) — last completed lap
 //
-//  SPageFileGraphic layout (why 140/144/148):
-//    packetId(4) + status(4) + session(4)          = 12 bytes
-//    currentTime wchar_t[15]                        = 30 bytes  → 42
-//    lastTime    wchar_t[15]                        = 30 bytes  → 72
-//    bestTime    wchar_t[15]                        = 30 bytes  → 102
-//    split       wchar_t[15]                        = 30 bytes  → 132
-//    completedLaps(4) + position(4)                 = 8 bytes   → 140
-//    → iCurrentTime float32 at 140, iLastTime at 144, iBestTime at 148
+//  This matches the Python mmap example:
+//    shm.seek(212); last_time = struct.unpack("i", shm.read(4))[0]
 //
 //    Offset 1556  trackGripStatus     0=Green 1=Fast 2=Optimum 3=Greasy 4=Damp 5=Wet 6=Flooded
 //    Offset 1560  rainIntensity       0=No rain 1=Drizzle 2=Light 3=Medium 4=Heavy 5=Thunderstorm
@@ -36,41 +28,38 @@ const path                   = require('path');
 const GRIP_OFFSET = 1556;   // trackGripStatus; rain fields follow at +4, +8, +12
 
 const PS_SCRIPT = `
-$off = ${GRIP_OFFSET}
+${'$'}off = ${GRIP_OFFSET}
 while ($true) {
-    $g = -1; $r0 = -1; $r10 = -1; $r30 = -1
-    $tc = -1; $tl = -1; $tb = -1
+    ${'$'}g = -1; ${'$'}r0 = -1; ${'$'}r10 = -1; ${'$'}r30 = -1
+    ${'$'}tc = -1; ${'$'}tl = -1; ${'$'}tb = -1
     try {
-        $mmf  = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting("Local\\acpmf_graphics")
-        $view = $mmf.CreateViewAccessor(0, 0, [System.IO.MemoryMappedFiles.MemoryMappedFileAccess]::Read)
-        $g   = $view.ReadInt32($off)
-        $r0  = $view.ReadInt32($off + 4)
-        $r10 = $view.ReadInt32($off + 8)
-        $r30 = $view.ReadInt32($off + 12)
-        $tc  = [Math]::Round($view.ReadSingle(140))
-        $tl  = [Math]::Round($view.ReadSingle(144))
-        $tb  = [Math]::Round($view.ReadSingle(148))
-        $view.Dispose()
-        $mmf.Dispose()
+        ${'$'}mmf  = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting("Local\\acpmf_graphics")
+        ${'$'}view = ${'$'}mmf.CreateViewAccessor(0, 0, [System.IO.MemoryMappedFiles.MemoryMappedFileAccess]::Read)
+        ${'$'}g   = ${'$'}view.ReadInt32(${ '$'}off)
+        ${'$'}r0  = ${'$'}view.ReadInt32(${ '$'}off + 4)
+        ${'$'}r10 = ${'$'}view.ReadInt32(${ '$'}off + 8)
+        ${'$'}r30 = ${'$'}view.ReadInt32(${ '$'}off + 12)
+        # Last lap in ms from graphics shared memory (int32)
+        ${'$'}tl  = ${'$'}view.ReadInt32(212)  # lastTime
+        ${'$'}view.Dispose()
+        ${'$'}mmf.Dispose()
     } catch {
         try {
-            $mmf  = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting("acpmf_graphics")
-            $view = $mmf.CreateViewAccessor(0, 0, [System.IO.MemoryMappedFiles.MemoryMappedFileAccess]::Read)
-            $g   = $view.ReadInt32($off)
-            $r0  = $view.ReadInt32($off + 4)
-            $r10 = $view.ReadInt32($off + 8)
-            $r30 = $view.ReadInt32($off + 12)
-            $tc  = [Math]::Round($view.ReadSingle(12))
-            $tl  = [Math]::Round($view.ReadSingle(16))
-            $tb  = [Math]::Round($view.ReadSingle(20))
-            $view.Dispose()
-            $mmf.Dispose()
+            ${'$'}mmf  = [System.IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting("acpmf_graphics")
+            ${'$'}view = ${'$'}mmf.CreateViewAccessor(0, 0, [System.IO.MemoryMappedFiles.MemoryMappedFileAccess]::Read)
+            ${'$'}g   = ${'$'}view.ReadInt32(${ '$'}off)
+            ${'$'}r0  = ${'$'}view.ReadInt32(${ '$'}off + 4)
+            ${'$'}r10 = ${'$'}view.ReadInt32(${ '$'}off + 8)
+            ${'$'}r30 = ${'$'}view.ReadInt32(${ '$'}off + 12)
+            ${'$'}tl  = ${'$'}view.ReadInt32(212)
+            ${'$'}view.Dispose()
+            ${'$'}mmf.Dispose()
         } catch {
-            $g = -1; $r0 = -1; $r10 = -1; $r30 = -1
-            $tc = -1; $tl = -1; $tb = -1
+            ${'$'}g = -1; ${'$'}r0 = -1; ${'$'}r10 = -1; ${'$'}r30 = -1
+            ${'$'}tc = -1; ${'$'}tl = -1; ${'$'}tb = -1
         }
     }
-    [Console]::Out.WriteLine("$g,$r0,$r10,$r30,$tc,$tl,$tb")
+    [Console]::Out.WriteLine("${'$'}g,${'$'}r0,${'$'}r10,${'$'}r30,${'$'}tc,${'$'}tl,${'$'}tb")
     [Console]::Out.Flush()
     Start-Sleep -Milliseconds 500
 }

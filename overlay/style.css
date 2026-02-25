@@ -106,19 +106,47 @@ html, body {
 }
 .pit-label { font-size: 8px; font-weight: 700; color: #ffcc00; }
 
-/* Manufacturer */
+/* Manufacturer logo slot (shows text + optional logo) */
 .mfr {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 40px;
   min-width: 40px;
+  border-left: 1px solid rgba(255,255,255,0.06);   /* subtle separator from name block */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   font-size: 8px;
   font-weight: 700;
   color: #aaa;
   letter-spacing: 0.4px;
-  border-left: 1px solid rgba(255,255,255,0.06);   /* subtle separator from name block */
 }
+
+/* Per‑brand logo classes (PORS wired to provided asset) */
+.mfr-pors {
+  background-image: url('../assets/c__Users_artem_AppData_Roaming_Cursor_User_workspaceStorage_b7c59fad21bb8b0a4c73b5836f9a723d_images_image-88b77297-ee2e-4ac5-a3d2-67e6055dd447.png');
+  color: transparent;
+}
+.mfr-merc { background-image: url('logos/mercedes.png'); }
+.mfr-ferr { background-image: url('logos/ferrari.png'); }
+.mfr-audi { background-image: url('logos/audi.png'); }
+.mfr-lamb { background-image: url('logos/lamborghini.png'); }
+.mfr-mcl  { background-image: url('logos/mclaren.png'); }
+.mfr-niss { background-image: url('logos/nissan.png'); }
+.mfr-bmw  { background-image: url('logos/bmw.png'); }
+.mfr-bent { background-image: url('logos/bentley.png'); }
+.mfr-amr  { background-image: url('logos/aston-martin.png'); }
+.mfr-jag  { background-image: url('logos/jaguar.png'); }
+.mfr-lex  { background-image: url('logos/lexus.png'); }
+.mfr-hond { background-image: url('logos/honda.png'); }
+.mfr-alp  { background-image: url('logos/alpine.png'); }
+.mfr-chev { background-image: url('logos/chevrolet.png'); }
+.mfr-gin  { background-image: url('logos/ginetta.png'); }
+.mfr-ktm  { background-image: url('logos/ktm.png'); }
+.mfr-mas  { background-image: url('logos/maserati.png'); }
+.mfr-toy  { background-image: url('logos/toyota.png'); }
+.mfr-ford { background-image: url('logos/ford.png'); }
 
 /* Car number */
 .car-num {

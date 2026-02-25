@@ -94,6 +94,15 @@ class DataStore {
     const driver = entry.drivers?.[entry.currentDriverIndex ?? 0] ?? entry.drivers?.[0];
     const flag   = driver ? getNatFlag(driver.nationality) : '🏳️';
 
+    const shmLast  = this.session.shmLastLapMs;
+    const udpLast  = rt.lastLapMs;
+    let   lastLapMs = -1;
+    if (shmLast > 0 && shmLast < 0x7FFFFFFF) {
+      lastLapMs = shmLast;
+    } else if (udpLast > 0 && udpLast < 0x7FFFFFFF) {
+      lastLapMs = udpLast;
+    }
+
     return {
       carIndex:         ci,
       raceNumber:       entry.raceNumber,
@@ -101,11 +110,7 @@ class DataStore {
       teamName:         entry.teamName ?? '',
       manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
       bestLapMs:        rt.bestSessionLapMs ?? -1,
-      // UDP lastLapMs (now fixed: split count is uint16 not uint8).
-      // SHM shmLastLapMs is the player's own last lap — use as fallback.
-      lastLapMs:        (rt.lastLapMs > 0 && rt.lastLapMs < 0x7FFFFFFF)
-                          ? rt.lastLapMs
-                          : (this.session.shmLastLapMs ?? -1),
+      lastLapMs,
       classPosition:    rt.cupPosition      ?? 0,
       overallPosition:  rt.position         ?? 0,
       flag,
@@ -221,6 +226,7 @@ class DataStore {
         rainNow:         this.session.rainNow,
         rainIn10:        this.session.rainIn10,
         rainIn30:        this.session.rainIn30,
+        shmLastLapMs:    this.session.shmLastLapMs,
       },
       track:        { name: this.trackName, lengthM: this.trackLength },
       classes:      outClasses,

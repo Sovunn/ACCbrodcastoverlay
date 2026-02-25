@@ -19,7 +19,6 @@ function updateContent(car) {
   document.getElementById('db-team').textContent   = car.teamName   || '';
   document.getElementById('db-brand').textContent  = car.manufacturerAbbr || '—';
   document.getElementById('db-best').textContent   = fmtLap(car.bestLapMs);
-  document.getElementById('db-last').textContent   = fmtLap(car.lastLapMs);
 }
 
 function render(data) {
