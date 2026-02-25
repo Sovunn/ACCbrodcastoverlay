@@ -1,7 +1,7 @@
 'use strict';
 
 // ── Session labels ───────────────────────────
-const SESSION_LABELS = { '-1': 'ACC', 0: 'PRACTICE', 1: 'QUALIFYING', 2: 'SUPERPOLE', 3: 'RACE', 4: 'HOTLAP' };
+const SESSION_LABELS = { '-1': 'ACC', 0: 'PRACTICE', 1: 'QUALIFYING', 2: 'SUPERPOLE', 3: 'RACE', 4: 'QUALIFYING' };
 const CLASS_ORDER = ['GT3', 'GT4', 'CUP', 'ST', 'TCX'];
 
 // ── Helpers ──────────────────────────────────
