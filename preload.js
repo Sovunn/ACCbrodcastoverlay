@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('accApi', {
 
   // ── Control window ────────────────────────
   onStatus(cb)        { ipcRenderer.on('status-update', (_, d) => cb(d)); },
-  copyOBSUrl()        { ipcRenderer.send('ctrl-copy-obs'); },
+  copyOBSUrl(panel)   { ipcRenderer.send('ctrl-copy-obs', panel); },
   toggleDemo()        { ipcRenderer.send('ctrl-toggle-demo'); },
   toggleOverlay()     { ipcRenderer.send('ctrl-toggle-overlay'); },
   resetOverlay()      { ipcRenderer.send('ctrl-reset-overlay'); },

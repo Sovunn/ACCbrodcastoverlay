@@ -6,6 +6,29 @@ const fs      = require('fs');
 const zlib    = require('zlib');
 const express = require('express');
 
+// When started from a batch file, the console pipe can disappear after the
+// terminal closes. Ignore EPIPE so console.log/error won't crash the main process.
+for (const stream of [process.stdout, process.stderr]) {
+  if (stream && typeof stream.on === 'function') {
+    stream.on('error', (err) => {
+      if (err?.code !== 'EPIPE') throw err;
+    });
+  }
+}
+
+for (const method of ['log', 'info', 'warn', 'error']) {
+  const original = console[method];
+  if (typeof original === 'function') {
+    console[method] = (...args) => {
+      try {
+        return original.apply(console, args);
+      } catch (err) {
+        if (err?.code !== 'EPIPE') throw err;
+      }
+    };
+  }
+}
+
 const DataStore    = require('./src/data-store');
 const AccUdpClient = require('./src/acc-udp');
 const AccShmReader    = require('./src/acc-shm');
@@ -163,12 +186,12 @@ function createDriverWindow() {
 // ─────────────────────────────────────────────
 function createControlWindow() {
   controlWindow = new BrowserWindow({
-    width:        340,
-    height:       440,
-    minWidth:     340,
-    maxWidth:     340,
-    minHeight:    440,
-    maxHeight:    440,
+    width:        360,
+    height:       560,
+    minWidth:     360,
+    maxWidth:     360,
+    minHeight:    560,
+    maxHeight:    560,
     resizable:    false,
     frame:        false,
     transparent:  false,
@@ -288,7 +311,15 @@ function startWebServer() {
   const exApp = express();
 
   exApp.use('/static', express.static(path.join(__dirname, 'web')));
-  exApp.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'web', 'index.html')));
+  exApp.use('/overlay', express.static(path.join(__dirname, 'overlay')));
+  exApp.use('/weather', express.static(path.join(__dirname, 'weather')));
+  exApp.use('/driver',  express.static(path.join(__dirname, 'driver')));
+  exApp.get('/', (_req, res) => res.redirect('/obs/standings'));
+  exApp.get('/obs', (_req, res) => res.redirect('/obs/standings'));
+  exApp.get('/obs/standings', (_req, res) => res.sendFile(path.join(__dirname, 'web', 'obs-standings.html')));
+  exApp.get('/obs/weather',   (_req, res) => res.sendFile(path.join(__dirname, 'web', 'obs-weather.html')));
+  exApp.get('/obs/driver',    (_req, res) => res.sendFile(path.join(__dirname, 'web', 'obs-driver.html')));
+  exApp.get('/legacy', (_req, res) => res.sendFile(path.join(__dirname, 'web', 'index.html')));
 
   exApp.get('/stream', (req, res) => {
     res.writeHead(200, {
@@ -304,8 +335,16 @@ function startWebServer() {
 
   exApp.get('/api/standings', (_req, res) => res.json(store.getStandings()));
 
-  exApp.listen(OBS_PORT, '127.0.0.1', () =>
-    console.log(`[Main] OBS source → http://127.0.0.1:${OBS_PORT}`));
+  const obsServer = exApp.listen(OBS_PORT, '127.0.0.1', () =>
+    console.log(`[Main] OBS source -> http://127.0.0.1:${OBS_PORT}`));
+
+  obsServer.on('error', (err) => {
+    if (err?.code === 'EADDRINUSE') {
+      console.warn(`[Main] OBS port ${OBS_PORT} already in use on 127.0.0.1. Continuing without local OBS HTTP source.`);
+      return;
+    }
+    throw err;
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -452,8 +491,11 @@ ipcMain.on('ctrl-toggle-overlay', () => {
   toggleOverlayVisibility();
 });
 
-ipcMain.on('ctrl-copy-obs', () => {
-  clipboard.writeText(`http://127.0.0.1:${OBS_PORT}`);
+ipcMain.on('ctrl-copy-obs', (_event, panel = 'standings') => {
+  const suffix = panel === 'weather' ? '/obs/weather'
+    : panel === 'driver' ? '/obs/driver'
+    : '/obs/standings';
+  clipboard.writeText(`http://127.0.0.1:${OBS_PORT}${suffix}`);
 });
 
 ipcMain.on('ctrl-toggle-demo', () => {

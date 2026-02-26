@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';" />
+  <title>ACC Overlay OBS - Driver</title>
+  <link rel="stylesheet" href="/driver/style.css" />
+</head>
+<body>
+  <div id="driver-root">
+    <div id="db-pos">—</div>
+    <div id="db-number">—</div>
+    <div id="db-info">
+      <div id="db-driver">—</div>
+      <div id="db-team">—</div>
+    </div>
+    <div class="db-sep"></div>
+    <div id="db-laps">
+      <div class="db-lap-row">
+        <span class="db-key">BEST</span>
+        <span id="db-best">—</span>
+      </div>
+      <div class="db-lap-row">
+        <span class="db-key">LAST</span>
+        <span id="db-last">—</span>
+      </div>
+    </div>
+    <div class="db-sep"></div>
+    <div id="db-right">
+      <div id="db-brand">—</div>
+      <div id="db-flag"></div>
+    </div>
+  </div>
+  <script src="/static/obs-bridge.js"></script>
+  <script src="/driver/script.js"></script>
+</body>
+</html>
+

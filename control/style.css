@@ -20,8 +20,8 @@
 }
 
 html, body {
-  width: 340px;
-  height: 440px;
+  width: 360px;
+  height: 560px;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -186,6 +186,70 @@ html, body {
 .btn:hover         { background: #333; border-color: #444; }
 .btn.primary       { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { background: #aa0000; }
+
+/* OBS sources card */
+#obs-sources {
+  margin: 10px 14px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+    #151515;
+}
+
+.obs-head {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #bdbdbd;
+  margin-bottom: 8px;
+}
+
+.obs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.obs-row:first-of-type { border-top: none; padding-top: 0; }
+.obs-row:last-of-type  { padding-bottom: 0; }
+
+.obs-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.obs-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.obs-url {
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+  font-size: 9.5px;
+  color: #8f8f8f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn.obs-copy {
+  flex: 0 0 54px;
+  width: 54px;
+  height: 26px;
+  font-size: 10px;
+  border-radius: 5px;
+}
+.btn.obs-copy.copied {
+  background: #10331d;
+  border-color: #1f8f4c;
+  color: #86efac;
+}
 
 /* ── Overlay controls (scale + lock) ─────── */
 #overlay-controls {

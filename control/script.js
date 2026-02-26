@@ -146,12 +146,22 @@ function render(s) {
 // ── Buttons ─────────────────────────────────
 btnToggle.addEventListener('click', () => window.accApi.toggleOverlay());
 
-document.getElementById('btn-obs').addEventListener('click', () => {
-  window.accApi.copyOBSUrl();
-  const btn = document.getElementById('btn-obs');
-  btn.textContent = 'Copied!';
-  setTimeout(() => { btn.textContent = 'Copy OBS URL'; }, 1500);
-});
+function copyObs(panel, btnId) {
+  window.accApi.copyOBSUrl(panel);
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const prev = btn.textContent;
+  btn.textContent = 'Copied';
+  btn.classList.add('copied');
+  setTimeout(() => {
+    btn.textContent = prev;
+    btn.classList.remove('copied');
+  }, 1200);
+}
+
+document.getElementById('btn-obs-standings')?.addEventListener('click', () => copyObs('standings', 'btn-obs-standings'));
+document.getElementById('btn-obs-weather')?.addEventListener('click', () => copyObs('weather', 'btn-obs-weather'));
+document.getElementById('btn-obs-driver')?.addEventListener('click', () => copyObs('driver', 'btn-obs-driver'));
 
 document.getElementById('btn-demo').addEventListener('click', () => window.accApi.toggleDemo());
 

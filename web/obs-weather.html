@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';" />
+  <title>ACC Overlay OBS - Weather</title>
+  <link rel="stylesheet" href="/weather/style.css" />
+</head>
+<body>
+  <div id="weather-root">
+    <div class="wb-slot">
+      <div class="wb-icon" id="wb-icon-now">☀</div>
+      <div class="wb-rain-label" id="wb-rain-now"></div>
+      <div class="wb-label">NOW</div>
+    </div>
+    <div class="wb-trend" id="wb-trend-1"></div>
+    <div class="wb-slot">
+      <div class="wb-icon" id="wb-icon-10">☀</div>
+      <div class="wb-rain-label" id="wb-rain-10"></div>
+      <div class="wb-label" id="wb-label-10">+10'</div>
+    </div>
+    <div class="wb-trend" id="wb-trend-2"></div>
+    <div class="wb-slot">
+      <div class="wb-icon" id="wb-icon-30">☀</div>
+      <div class="wb-rain-label" id="wb-rain-30"></div>
+      <div class="wb-label" id="wb-label-30">+30'</div>
+    </div>
+    <div class="wb-sep"></div>
+    <div class="wb-item">
+      <span class="wb-key">TRACK</span>
+      <span id="wb-grip">—</span>
+    </div>
+    <div class="wb-sep"></div>
+    <div class="wb-item">
+      <span class="wb-key">AIR / TRACK</span>
+      <span id="wb-temps">—</span>
+    </div>
+  </div>
+  <script src="/static/obs-bridge.js"></script>
+  <script src="/weather/script.js"></script>
+</body>
+</html>
+

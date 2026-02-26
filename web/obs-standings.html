@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';" />
+  <title>ACC Overlay OBS - Standings</title>
+  <link rel="stylesheet" href="/overlay/style.css" />
+</head>
+<body>
+  <div id="overlay">
+    <div id="session-header" class="drag-handle">
+      <span id="session-type">ACC</span>
+      <span id="session-time"></span>
+      <span id="track-name"></span>
+    </div>
+    <div id="standings-wrapper" class="panel">
+      <div id="standings"></div>
+    </div>
+  </div>
+  <script src="/static/obs-bridge.js"></script>
+  <script src="/overlay/script.js"></script>
+</body>
+</html>
+

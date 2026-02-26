@@ -64,8 +64,32 @@
   <!-- ── Action buttons ── -->
   <div id="actions">
     <button class="btn primary" id="btn-toggle-overlay">Show Overlay</button>
-    <button class="btn" id="btn-obs">Copy OBS URL</button>
     <button class="btn" id="btn-demo">Demo</button>
+  </div>
+
+  <div id="obs-sources">
+    <div class="obs-head">OBS Browser Sources</div>
+    <div class="obs-row">
+      <div class="obs-meta">
+        <div class="obs-name">Standings</div>
+        <div class="obs-url" id="obs-url-standings">http://127.0.0.1:5000/obs/standings</div>
+      </div>
+      <button class="btn obs-copy" id="btn-obs-standings">Copy</button>
+    </div>
+    <div class="obs-row">
+      <div class="obs-meta">
+        <div class="obs-name">Weather</div>
+        <div class="obs-url" id="obs-url-weather">http://127.0.0.1:5000/obs/weather</div>
+      </div>
+      <button class="btn obs-copy" id="btn-obs-weather">Copy</button>
+    </div>
+    <div class="obs-row">
+      <div class="obs-meta">
+        <div class="obs-name">Driver</div>
+        <div class="obs-url" id="obs-url-driver">http://127.0.0.1:5000/obs/driver</div>
+      </div>
+      <button class="btn obs-copy" id="btn-obs-driver">Copy</button>
+    </div>
   </div>
 
   <div class="sep" style="margin-top:8px"></div>
@@ -104,7 +128,7 @@
 
   <!-- ── Footer ── -->
   <div id="footer">
-    <span id="obs-hint">OBS: http://127.0.0.1:5000</span>
+    <span id="obs-hint">OBS base: http://127.0.0.1:5000</span>
     <span id="version">v1.0.0</span>
   </div>
 
