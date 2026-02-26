@@ -37,10 +37,16 @@ class AccUdpClient {
     this.connectionId       = -1;
     this._retryTimer        = null;
     this._heartbeatTimer    = null;
+    this._entryRefreshTimer = null;
     this._lastPacketMs      = 0;
     this._lastSessionKey    = null;   // 'eventIndex_sessionIndex' — changes on new session
     this._todPrev           = -1;     // previous timeOfDay sample (game seconds)
     this._todRealMs         = 0;      // real timestamp of previous sample
+    this._sessClockPrev     = null;   // previous session clock sample (game seconds)
+    this._sessClockRealMs   = 0;      // real timestamp of previous session clock sample
+    this._tmFromTod         = null;   // preferred weather/day-night multiplier
+    this._tmFromSession     = null;   // fallback estimate from session clock
+    this._tmTodLastMs       = 0;
   }
 
   start() { this._connect(); }
@@ -48,6 +54,7 @@ class AccUdpClient {
   // ── Connection ────────────────────────────────────────────────────────────
   _connect() {
     clearInterval(this._heartbeatTimer);
+    clearInterval(this._entryRefreshTimer);
     if (this.sock) { try { this.sock.close(); } catch {} }
 
     this.sock = dgram.createSocket('udp4');
@@ -99,11 +106,19 @@ class AccUdpClient {
           }, 5000);
         }
       }, 5000);
+
+      // Periodic static entry refresh (late joiners / driver swaps)
+      this._entryRefreshTimer = setInterval(() => {
+        if (this.connectionId >= 0) {
+          this._send(this._buildCmd(MSG_OUT.REQUEST_ENTRY_LIST));
+        }
+      }, 30000);
     });
   }
 
   _scheduleReconnect() {
     clearInterval(this._heartbeatTimer);
+    clearInterval(this._entryRefreshTimer);
     this.store.setDisconnected();
     this.connectionId = -1;
     clearInterval(this._retryTimer);
@@ -258,6 +273,7 @@ class AccUdpClient {
     const phase          = buf[off]; off += 1;
     const sessionTime    = buf.readFloatLE(off) / 1000; off += 4;   // ms → s
     const sessionEndTime = buf.readFloatLE(off) / 1000; off += 4;   // ms → s
+    this._updateTimeMultiplierFromSessionClock(sessionEndTime > 0 ? sessionEndTime : sessionTime);
 
     // Extended fields (v4) — wrapped in try/catch for older ACC versions
     // NOTE: rain forecast comes from SHM (acc-shm.js), NOT from UDP.
@@ -265,6 +281,7 @@ class AccUdpClient {
     //       0-5 rainIntensity scale.  We only pull ambientTemp/trackTemp here.
     let focusedCarIndex = -1;
     let ambientTemp, trackTemp;
+    let timeOfDay;
     try {
       focusedCarIndex = buf.readInt32LE(off); off += 4;
       let _cam1, _cam2, _hud;
@@ -273,7 +290,7 @@ class AccUdpClient {
       [_hud,  off] = this._rs(buf, off);   // currentHudPage
       const isReplay = buf[off]; off += 1;
       if (isReplay) off += 8;              // replaySessionTime + replayRemainingTime (2×float32)
-      const timeOfDay = buf.readFloatLE(off); off += 4;  // seconds since midnight (game time)
+      timeOfDay = buf.readFloatLE(off); off += 4;  // seconds since midnight (game time)
       this._updateTimeMultiplier(timeOfDay);
       ambientTemp = buf[off]; off += 1;
       trackTemp   = buf[off];
@@ -290,20 +307,58 @@ class AccUdpClient {
   /** Calculate game-time multiplier from timeOfDay progression */
   _updateTimeMultiplier(tod) {
     const now = Date.now();
-    if (this._todPrev >= 0 && tod > 0) {
+    if (!(tod > 0)) return;
+    if (this._todPrev >= 0) {
+      if (Math.abs(tod - this._todPrev) < 0.001) return; // ignore unchanged coarse samples
       const realDeltaS = (now - this._todRealMs) / 1000;
       let gameDelta = tod - this._todPrev;
       // Handle midnight wrap (86400 = seconds in a day)
       if (gameDelta < -43200) gameDelta += 86400;
-      if (realDeltaS > 2 && gameDelta > 0) {
+      if (realDeltaS > 0.2 && realDeltaS < 5 && gameDelta > 0) {
         const mult = gameDelta / realDeltaS;
-        // Smooth: blend with previous value (avoid spikes)
-        const prev = this.store.session.timeMultiplier ?? mult;
-        this.store.session.timeMultiplier = prev * 0.8 + mult * 0.2;
+        if (!Number.isFinite(mult) || mult < 0.1 || mult > 30) {
+          this._todPrev = tod;
+          this._todRealMs = now;
+          return;
+        }
+        const prev = this._tmFromTod ?? mult;
+        this._tmFromTod = prev * 0.8 + mult * 0.2;
+        this._tmTodLastMs = now;
+        this._commitTimeMultiplier();
       }
     }
     this._todPrev = tod;
     this._todRealMs = now;
+  }
+
+  /** Fallback multiplier estimate from session clock progression (works even if timeOfDay is unreliable). */
+  _updateTimeMultiplierFromSessionClock(clockS) {
+    const now = Date.now();
+    if (!(clockS >= 0)) return;
+    if (this._tmTodLastMs > 0 && (now - this._tmTodLastMs) < 15000) {
+      this._sessClockPrev = clockS;
+      this._sessClockRealMs = now;
+      return;
+    }
+    if (this._sessClockPrev != null && this._sessClockRealMs > 0) {
+      const realDeltaS = (now - this._sessClockRealMs) / 1000;
+      const gameDeltaAbs = Math.abs(clockS - this._sessClockPrev);
+      if (realDeltaS > 0.2 && realDeltaS < 5 && gameDeltaAbs > 0.001) {
+        const mult = gameDeltaAbs / realDeltaS;
+        if (Number.isFinite(mult) && mult >= 0.1 && mult <= 30) {
+          const prev = this._tmFromSession ?? mult;
+          this._tmFromSession = prev * 0.8 + mult * 0.2;
+          this._commitTimeMultiplier();
+        }
+      }
+    }
+    this._sessClockPrev = clockS;
+    this._sessClockRealMs = now;
+  }
+
+  _commitTimeMultiplier() {
+    const tm = this._tmFromTod ?? this._tmFromSession;
+    if (Number.isFinite(tm) && tm > 0) this.store.session.timeMultiplier = tm;
   }
 
   /**

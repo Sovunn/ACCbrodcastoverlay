@@ -13,7 +13,8 @@ let lastCarIndex = null;
 let switchTimer = null;
 
 function updateContent(car) {
-  document.getElementById('db-pos').textContent = car.classPosition > 0 ? `P${car.classPosition}` : '—';
+  const pos = (car.overallPosition ?? 0) > 0 ? car.overallPosition : (car.classPosition ?? 0);
+  document.getElementById('db-pos').textContent = pos > 0 ? `P${pos}` : '—';
   const numEl = document.getElementById('db-number');
   numEl.textContent = car.raceNumber ?? '—';
   // Class-colored number background

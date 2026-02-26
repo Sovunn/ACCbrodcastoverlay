@@ -11,6 +11,12 @@ function trendArrow(from, to) {
   return '';
 }
 
+function snapDisplayMultiplier(mult) {
+  if (!Number.isFinite(mult) || mult <= 0) return 1;
+  const nearestInt = Math.round(mult);
+  return (nearestInt >= 1 && Math.abs(mult - nearestInt) <= 0.2) ? nearestInt : mult;
+}
+
 function render(data) {
   const s = data.session;
   const rainNow  = s.rainNow  ?? 0;
@@ -34,12 +40,12 @@ function render(data) {
   document.getElementById('wb-trend-2').className = 'wb-trend' + (arrow2 === '↑' ? ' trend-up' : arrow2 === '↓' ? ' trend-down' : '');
 
   // Adjust forecast labels for time multiplier (e.g. 7x → "+10'" becomes "+1.4'")
-  const mult = s.timeMultiplier ?? 1;
-  if (mult > 1.5) {
-    const m10 = Math.round(10 / mult);
-    const m30 = Math.round(30 / mult);
-    document.getElementById('wb-label-10').textContent = `+${m10}'`;
-    document.getElementById('wb-label-30').textContent = `+${m30}'`;
+  const mult = snapDisplayMultiplier(Number(s.timeMultiplier ?? 1));
+  if (mult > 1) {
+    const m10 = Math.round((10 / mult) * 10) / 10;
+    const m30 = Math.round((30 / mult) * 10) / 10;
+    document.getElementById('wb-label-10').textContent = `+${Number.isInteger(m10) ? m10 : m10.toFixed(1)}'`;
+    document.getElementById('wb-label-30').textContent = `+${Number.isInteger(m30) ? m30 : m30.toFixed(1)}'`;
   } else {
     document.getElementById('wb-label-10').textContent = "+10'";
     document.getElementById('wb-label-30').textContent = "+30'";

@@ -143,8 +143,7 @@ html, body {
 
 /* Per‑brand logo classes (PORS wired to provided asset) */
 .mfr-pors {
-  background-image: url('../assets/c__Users_artem_AppData_Roaming_Cursor_User_workspaceStorage_b7c59fad21bb8b0a4c73b5836f9a723d_images_image-88b77297-ee2e-4ac5-a3d2-67e6055dd447.png');
-  color: transparent;
+  background-image: url('logos/porsche.png');
 }
 .mfr-merc { background-image: url('logos/mercedes.png'); }
 .mfr-ferr { background-image: url('logos/ferrari.png'); }

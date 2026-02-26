@@ -26,6 +26,7 @@ class DataStore {
     this.carEntries = new Map(); // carIndex → entry
     this.carRealtimes = new Map(); // carIndex → realtime
     this.driverLapStates = new Map(); // driverKey → { lastLap, prevMeta }
+    this.gapEstimateCache = new Map(); // "behind:ahead" → { gapS, lapped }
     this.liveryTeamNames = new Map(); // raceNumber → teamName (from local livery files)
     this.trackName = '';
     this.trackLength = 0;
@@ -44,6 +45,7 @@ class DataStore {
     this.carEntries.clear();
     this.carRealtimes.clear();
     this.driverLapStates.clear();
+    this.gapEstimateCache.clear();
     this.trackName = '';
     this.trackLength = 0;
   }
@@ -55,6 +57,7 @@ class DataStore {
   resetSessionCars() {
     this.carRealtimes.clear();
     this.driverLapStates.clear();
+    this.gapEstimateCache.clear();
   }
 
   // Full reset when reconnecting to a (potentially different) server.
@@ -62,6 +65,7 @@ class DataStore {
     this.carEntries.clear();
     this.carRealtimes.clear();
     this.driverLapStates.clear();
+    this.gapEstimateCache.clear();
   }
 
   // ── Writers ───────────────────────────────
@@ -71,6 +75,7 @@ class DataStore {
   updateCarEntry(e) { this.carEntries.set(e.carIndex, e); }
   setLiveryTeamNames(map) { this.liveryTeamNames = map; }
   updateCarRealtime(rt) {
+    rt.rxTsMs = Date.now();
     const prev = this.carRealtimes.get(rt.carIndex);
     if (prev) {
       // Preserve valid lap times — if the new read failed (=-1) or has no lap yet (=INV),
@@ -174,6 +179,12 @@ class DataStore {
       return pa !== pb ? pa - pb : b.rt.splinePosition - a.rt.splinePosition;
     });
 
+    // For race gaps, ACC-style display is to the immediate overall car ahead (not class leader / class ahead).
+    const prevOverallByCarIndex = new Map();
+    for (let i = 0; i < allCars.length; i++) {
+      prevOverallByCarIndex.set(allCars[i].carIndex, i > 0 ? allCars[i - 1] : null);
+    }
+
     // Group by class (preserving sort order within each group)
     const grouped = {};
     for (const car of allCars) {
@@ -208,11 +219,13 @@ class DataStore {
         const { entry, rt } = car;
         const classPos = displayStart + i + 1;   // 1-based position in full class order
 
+        const globalIdx = displayStart + i;
+        const prevOverallCar = prevOverallByCarIndex.get(car.carIndex) ?? null;
         let gapText, gapLaps;
-        if (displayStart + i === 0) {
+        if (!prevOverallCar) {
           gapText = 'LEADER'; gapLaps = 0;
         } else if (isRace) {
-          [gapText, gapLaps] = computeGap(car, classLeader, trackLength);
+          [gapText, gapLaps] = computeGap(car, prevOverallCar, trackLength, this.gapEstimateCache);
         } else {
           // Practice / Qualifying: gap to P1's best session lap time
           const carBest = rt.bestSessionLapMs ?? -1;
@@ -298,27 +311,57 @@ function formatLapDelta(ms) {
   return `+${(ms / 1000).toFixed(3)}`;
 }
 
-function computeGap(behind, ahead, trackLength) {
+function computeGap(behind, ahead, trackLength, gapCache) {
   const brt = behind.rt;
   const art = ahead.rt;
-  const lapDiff = art.laps - brt.laps;
+  const pairKey = `${behind.carIndex}:${ahead.carIndex}`;
+  const prevGap = gapCache?.get(pairKey);
+  const [aLaps, aSpline] = getProjectedLapProgress(art, trackLength);
+  const [bLaps, bSpline] = getProjectedLapProgress(brt, trackLength);
 
-  if (lapDiff >= 1) return [`+${lapDiff}L`, lapDiff];
+  // Use continuous progress to avoid false "+1L" when the car ahead just crossed the line.
+  let lapProgressDiff = (aLaps + aSpline) - (bLaps + bSpline);
+  if (lapProgressDiff < 0) {
+    // Packet ordering can briefly invert the pair; fall back to a wrapped spline diff.
+    lapProgressDiff = aSpline - bSpline;
+    if (lapProgressDiff < 0) lapProgressDiff += 1.0;
+  }
 
-  let splineDiff = art.splinePosition - brt.splinePosition;
-  if (splineDiff < 0) splineDiff += 1.0;   // ahead just crossed the line
+  const rawLapDiff = aLaps - bLaps;
+  const lappedThreshold = prevGap?.lapped ? 0.95 : 1.05;
+  const lapDiff = Math.floor(lapProgressDiff + 1e-6);
+  const isLikelyLapped =
+    rawLapDiff >= 2 ||
+    (rawLapDiff >= 1 && lapProgressDiff >= lappedThreshold);
+  if (isLikelyLapped && lapDiff >= 1) {
+    gapCache?.set(pairKey, { gapS: prevGap?.gapS ?? null, lapped: true });
+    return [`+${lapDiff}L`, lapDiff];
+  }
+
+  const splineDiff = lapProgressDiff % 1;
   if (splineDiff <= 0.0001) return ['+0.0', 0];
 
   let gapS;
-  const refLapMs = brt.lastLapMs ?? brt.bestSessionLapMs ?? -1;
-  if (refLapMs > 5000) {
-    gapS = splineDiff * (refLapMs / 1000);
-  } else if (trackLength > 100) {
-    const speedMs = Math.max(brt.speedKmh / 3.6, 40);
+  const aSpeedRaw = (art.speedKmh ?? 0) / 3.6;
+  const bSpeedRaw = (brt.speedKmh ?? 0) / 3.6;
+  // Prefer local speed for race gaps: it tracks straight/corner tempo better than average-lap conversion.
+  if (trackLength > 100 && aSpeedRaw > 5 && bSpeedRaw > 5) {
+    const speedMs = Math.max((aSpeedRaw + bSpeedRaw) * 0.5, 20);
     gapS = (splineDiff * trackLength) / speedMs;
   } else {
-    gapS = splineDiff * 120;
+    const refLapMs = pickRefLapMs(brt, art);
+    if (refLapMs > 5000) gapS = splineDiff * (refLapMs / 1000);
+    else gapS = splineDiff * 120;
   }
+
+  if (Number.isFinite(prevGap?.gapS) && prevGap.lapped !== true) {
+    const diff = gapS - prevGap.gapS;
+    const maxStep = prevGap.gapS < 3 ? 0.10 : (prevGap.gapS < 10 ? 0.20 : 0.35);
+    const clamped = Math.max(-maxStep, Math.min(maxStep, diff));
+    gapS = prevGap.gapS + clamped;
+    gapS = prevGap.gapS * 0.82 + gapS * 0.18;
+  }
+  gapCache?.set(pairKey, { gapS, lapped: false });
 
   if (gapS >= 60) {
     const m = Math.floor(gapS / 60);
@@ -326,6 +369,40 @@ function computeGap(behind, ahead, trackLength) {
     return [`+${m}:${s}`, 0];
   }
   return [`+${gapS.toFixed(1)}`, 0];
+}
+
+function validLapMs(ms) {
+  return typeof ms === 'number' && ms > 5000 && ms < INV;
+}
+
+function pickRefLapMs(brt, art) {
+  const candidates = [];
+  if (validLapMs(brt.lastLapMs)) candidates.push(brt.lastLapMs);
+  if (validLapMs(art.lastLapMs)) candidates.push(art.lastLapMs);
+  if (validLapMs(brt.bestSessionLapMs)) candidates.push(brt.bestSessionLapMs);
+  if (validLapMs(art.bestSessionLapMs)) candidates.push(art.bestSessionLapMs);
+  if (!candidates.length) return -1;
+  candidates.sort((a, b) => a - b);
+  return candidates[Math.floor(candidates.length / 2)];
+}
+
+function getProjectedLapProgress(rt, trackLength) {
+  let laps = Math.max(0, rt.laps ?? 0);
+  let spline = Math.max(0, Math.min(1, rt.splinePosition ?? 0));
+
+  // Reproject each car to "now" because ACC packets arrive per-car and are not perfectly simultaneous.
+  if (trackLength > 100 && typeof rt.rxTsMs === 'number') {
+    const ageMs = Math.max(0, Math.min(400, Date.now() - rt.rxTsMs));
+    if (ageMs > 0) {
+      const speedMs = Math.max((rt.speedKmh ?? 0) / 3.6, 0);
+      const deltaLap = (speedMs * (ageMs / 1000)) / trackLength;
+      const total = laps + spline + Math.min(deltaLap, 0.08); // cap projection to avoid spikes on bad speeds
+      laps = Math.floor(total);
+      spline = total - laps;
+    }
+  }
+
+  return [laps, spline];
 }
 
 function makeSessionKey(session) {
