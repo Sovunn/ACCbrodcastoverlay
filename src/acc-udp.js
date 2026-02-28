@@ -51,6 +51,18 @@ class AccUdpClient {
 
   start() { this._connect(); }
 
+  forceRefresh() {
+    if (!this.sock) return;
+    if (this.connectionId >= 0) {
+      this._send(this._buildCmd(MSG_OUT.REQUEST_ENTRY_LIST));
+      this._send(this._buildCmd(MSG_OUT.REQUEST_TRACK_DATA));
+      console.log('[UDP] Force refresh requested');
+      return;
+    }
+    this._send(this._buildRegister());
+    console.log('[UDP] Force refresh requested (re-register)');
+  }
+
   // ── Connection ────────────────────────────────────────────────────────────
   _connect() {
     clearInterval(this._heartbeatTimer);

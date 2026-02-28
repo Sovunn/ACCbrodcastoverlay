@@ -183,6 +183,18 @@ document.getElementById('btn-obs-weather')?.addEventListener('click', () => copy
 document.getElementById('btn-obs-driver')?.addEventListener('click', () => copyObs('driver', 'btn-obs-driver'));
 
 document.getElementById('btn-demo').addEventListener('click', () => window.accApi.toggleDemo());
+document.getElementById('btn-overlay-refresh')?.addEventListener('click', () => {
+  window.accApi.refreshOverlay();
+  const btn = document.getElementById('btn-overlay-refresh');
+  if (!btn) return;
+  const prev = btn.textContent;
+  btn.textContent = 'Refreshing...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = prev;
+    btn.disabled = false;
+  }, 1200);
+});
 
 // ── Title bar controls ───────────────────────
 document.getElementById('btn-minimize').addEventListener('click', () => window.accApi.minimizeWindow());

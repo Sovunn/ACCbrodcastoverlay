@@ -187,12 +187,12 @@ function createDriverWindow() {
 // ─────────────────────────────────────────────
 function createControlWindow() {
   controlWindow = new BrowserWindow({
-    width:        360,
-    height:       560,
-    minWidth:     360,
-    maxWidth:     360,
-    minHeight:    560,
-    maxHeight:    560,
+    width:        460,
+    height:       760,
+    minWidth:     460,
+    maxWidth:     460,
+    minHeight:    760,
+    maxHeight:    760,
     resizable:    false,
     frame:        false,
     transparent:  false,
@@ -517,6 +517,32 @@ ipcMain.on('ctrl-reset-overlay', () => {
     }
   }
   try { fs.unlinkSync(LAYOUT_PATH); } catch {}
+});
+
+ipcMain.on('ctrl-refresh-overlay', () => {
+  if (IS_DEMO) {
+    if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
+    store.reset();
+    loadDemoData(store);
+    demoTimer = startDemoSimulation(store);
+  } else {
+    store.resetSessionCars();
+    store.parseErrors = 0;
+    store.lastParseErr = '';
+    try { udpClient?.forceRefresh?.(); } catch {}
+  }
+
+  for (const win of [overlayWindow, weatherWindow, driverWindow]) {
+    if (win && !win.isDestroyed()) {
+      try { win.webContents.reloadIgnoringCache(); } catch {}
+    }
+  }
+
+  setTimeout(() => {
+    sendOverlayConfig();
+    sendWeatherConfig();
+    sendDriverConfig();
+  }, 350);
 });
 
 ipcMain.on('ctrl-set-scale', (_event, scale) => {

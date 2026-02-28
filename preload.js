@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('accApi', {
   toggleDemo()        { ipcRenderer.send('ctrl-toggle-demo'); },
   toggleOverlay()     { ipcRenderer.send('ctrl-toggle-overlay'); },
   resetOverlay()      { ipcRenderer.send('ctrl-reset-overlay'); },
+  refreshOverlay()    { ipcRenderer.send('ctrl-refresh-overlay'); },
   minimizeWindow()    { ipcRenderer.send('ctrl-minimize'); },
   closeApp()          { ipcRenderer.send('ctrl-close'); },
   setScale(v)         { ipcRenderer.send('ctrl-set-scale', v); },

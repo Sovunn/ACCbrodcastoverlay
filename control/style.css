@@ -20,8 +20,8 @@
 }
 
 html, body {
-  width: 360px;
-  height: 560px;
+  width: 460px;
+  height: 760px;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -167,7 +167,8 @@ html, body {
 /* ── Buttons ─────────────────────────────── */
 #actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 10px 14px 0;
 }
 
@@ -186,6 +187,11 @@ html, body {
 .btn:hover         { background: #333; border-color: #444; }
 .btn.primary       { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { background: #aa0000; }
+
+#actions-secondary {
+  display: flex;
+  gap: 8px;
+}
 
 /* OBS sources card */
 #obs-sources {
@@ -321,7 +327,7 @@ html, body {
 }
 
 .panel-btn {
-  width: 78px;
+  width: 92px;
   flex-shrink: 0;
   height: 26px;
   border: 1px solid var(--border);
@@ -352,7 +358,7 @@ html, body {
 }
 
 .cars-cap-input {
-  width: 52px;
+  width: 62px;
   height: 24px;
   border: 1px solid var(--border);
   border-radius: 4px;
