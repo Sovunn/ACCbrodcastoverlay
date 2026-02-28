@@ -2,8 +2,10 @@
 
 const { CLASS_ORDER, getCarClass, getManufacturerAbbr } = require('./car-data');
 const { getNatFlag } = require('./nationality-data');
+const { getTournamentTeamName, getTournamentLogoKey } = require('./tournament-team-map');
 
 const INV = 0x7FFFFFFF;   // ACC sentinel meaning "no valid lap time"
+const QUALI_SESSION_TYPES = new Set([0, 1, 2, 4, 5, 6]);
 
 const LAP_TYPE = {
   OUT: 'OUT',
@@ -33,6 +35,8 @@ class DataStore {
     this.parseErrors = 0;
     this.lastParseErr = '';
     this.maxCarsPerClass = 10;
+    this.finishedCars = new Set();   // cars that crossed line in post-timer phase
+    this.finishGapLocks = new Map(); // carIndex -> { gapText, gapLaps }
   }
 
   // ── Reset ─────────────────────────────────
@@ -49,6 +53,8 @@ class DataStore {
     this.gapEstimateCache.clear();
     this.trackName = '';
     this.trackLength = 0;
+    this.finishedCars.clear();
+    this.finishGapLocks.clear();
   }
 
   // Session change on the SAME server — only realtime data changes.
@@ -59,6 +65,8 @@ class DataStore {
     this.carRealtimes.clear();
     this.driverLapStates.clear();
     this.gapEstimateCache.clear();
+    this.finishedCars.clear();
+    this.finishGapLocks.clear();
   }
 
   // Full reset when reconnecting to a (potentially different) server.
@@ -67,6 +75,8 @@ class DataStore {
     this.carRealtimes.clear();
     this.driverLapStates.clear();
     this.gapEstimateCache.clear();
+    this.finishedCars.clear();
+    this.finishGapLocks.clear();
   }
 
   // ── Writers ───────────────────────────────
@@ -87,6 +97,15 @@ class DataStore {
         rt.bestSessionLapMs = prev.bestSessionLapMs;
     }
     this.carRealtimes.set(rt.carIndex, rt);
+
+    // After race timer hits zero, a lap increment means this car crossed the line
+    // and should have its displayed result gap frozen.
+    const isRaceSession = !QUALI_SESSION_TYPES.has(this.session.sessionType);
+    const inFinishWindow = isRaceSession && this.session.phase >= 5 && (this.session.sessionEndTime ?? 0) <= 0;
+    if (inFinishWindow && prev && rt.laps > (prev.laps ?? 0)) {
+      this.finishedCars.add(rt.carIndex);
+    }
+
     this._updateDriverLastLap(rt);
   }
   updateTrack(name, len) { this.trackName = name; this.trackLength = len; }
@@ -141,12 +160,16 @@ class DataStore {
       if (b > 0 && b < INV && (classBestLapMs < 0 || b < classBestLapMs)) classBestLapMs = b;
     }
 
+    const mappedTeam = getTournamentTeamName(entry.raceNumber, entry.teamName);
+    const teamLogoKey = getTournamentLogoKey(entry.raceNumber);
+
     return {
       carIndex: ci,
       raceNumber: entry.raceNumber,
       driverText: buildDriverText(entry),
       teamName: entry.teamName ?? '',
-      teamDisplayName: entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
+      teamDisplayName: mappedTeam || entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
+      teamLogoKey,
       manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
       carClass: focusedClass,
       bestLapMs: rt.bestSessionLapMs ?? -1,
@@ -163,9 +186,8 @@ class DataStore {
   getStandings() {
     const trackLength = this.trackLength;
     const focusedCarIndex = this.session.focusedCarIndex ?? -1;
-    // Non-race: practice(0), qualifying(1), superpole(2), hotlap(4), hotstint(5), hotlap-superpole(6)
-    const QUALI_TYPES = new Set([0, 1, 2, 4, 5, 6]);
-    const isRace = !QUALI_TYPES.has(this.session.sessionType);
+    const isRace = !QUALI_SESSION_TYPES.has(this.session.sessionType);
+    const raceStarted = this.session.phase >= 5;
 
     // Merge entries + realtimes, filtering out cars with no useful data
     const allCars = [];
@@ -211,21 +233,30 @@ class DataStore {
       // Focus window: find focused driver, shift window to show them
       const focusedIdx = cars.findIndex(c => c.carIndex === focusedCarIndex);
       let displayStart = 0;
-      if (focusedIdx > 0 && focusedIdx >= carCap) {
-        displayStart = Math.max(0, focusedIdx - 4);
+      let displayEnd = Math.min(cars.length, carCap);
+      if (focusedIdx >= 0 && cars.length > carCap) {
+        const behind = Math.floor((carCap - 1) / 2);
+        const maxStart = Math.max(0, cars.length - carCap);
+        // Center around focused car, then backfill from the other side near edges.
+        displayStart = Math.max(0, Math.min(maxStart, focusedIdx - behind));
+        displayEnd = Math.min(cars.length, displayStart + carCap);
       }
-      const displayCars = cars.slice(displayStart, displayStart + carCap);
+      const displayCars = cars.slice(displayStart, displayEnd);
 
       const leaderBestMs = classLeader.rt.bestSessionLapMs ?? -1;
 
       outClasses[cls] = displayCars.map((car, i) => {
         const { entry, rt } = car;
+        const mappedTeam = getTournamentTeamName(entry.raceNumber, entry.teamName);
+        const teamLogoKey = getTournamentLogoKey(entry.raceNumber);
         const classPos = displayStart + i + 1;   // 1-based position in full class order
 
         const globalIdx = displayStart + i;
         const prevOverallCar = prevOverallByCarIndex.get(car.carIndex) ?? null;
         let gapText, gapLaps;
-        if (!prevOverallCar) {
+        if (isRace && !raceStarted) {
+          gapText = '—'; gapLaps = 0;
+        } else if (!prevOverallCar) {
           gapText = 'LEADER'; gapLaps = 0;
         } else if (isRace) {
           [gapText, gapLaps] = computeGap(car, prevOverallCar, trackLength, this.gapEstimateCache);
@@ -239,13 +270,25 @@ class DataStore {
           }
         }
 
+        // Lock result gaps after each car finishes, and fully freeze once session ends.
+        if (isRace) {
+          const existingLock = this.finishGapLocks.get(car.carIndex);
+          if (existingLock) {
+            gapText = existingLock.gapText;
+            gapLaps = existingLock.gapLaps;
+          } else if (this.finishedCars.has(car.carIndex)) {
+            this.finishGapLocks.set(car.carIndex, { gapText, gapLaps });
+          }
+        }
+
         const lastLapInfo = getDriverLastLapForCar(this.driverLapStates, this.session, car.carIndex, entry, rt);
 
         return {
           carIndex: car.carIndex,
           raceNumber: entry.raceNumber,
           teamName: entry.teamName ?? '',
-          teamDisplayName: entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
+          teamDisplayName: mappedTeam || entry.teamName?.trim() || this.liveryTeamNames.get(entry.raceNumber) || getManufacturerAbbr(entry.carModelType),
+          teamLogoKey,
           driverText: buildDriverText(entry),
           manufacturerAbbr: getManufacturerAbbr(entry.carModelType),
           carModelType: entry.carModelType,

@@ -103,6 +103,12 @@ function render(data) {
 
       const mfrAbbr = esc(car.manufacturerAbbr || '');
       const mfrCls = mfrAbbr ? ` mfr-${mfrAbbr.toLowerCase()}` : '';
+      const teamLogoKey = (car.teamLogoKey || '').toLowerCase();
+      const teamLogoSafe = teamLogoKey.replace(/[^a-z0-9_-]/g, '');
+      const teamLogoInner = teamLogoSafe
+        ? `<div class="team-logo team-logo-${teamLogoSafe}" aria-label="${esc(teamLogoSafe)}"></div>`
+        : '';
+      const teamLogoHtml = `<div class="team-logo-slot">${teamLogoInner}</div>`;
 
       html += `
         <div class="car-row${pitCls}${focusCls}">
@@ -112,6 +118,7 @@ function render(data) {
             <div class="team-name">${esc(car.teamDisplayName)}</div>
             ${car.inPit ? '<div class="pit-label">PIT</div>' : ''}
           </div>
+          ${teamLogoHtml}
           <div class="mfr${mfrCls}" aria-label="${mfrAbbr}">${mfrAbbr}</div>
           <div class="car-num"><div class="car-num-inner">${esc(car.raceNumber)}</div></div>
           ${rightCol}

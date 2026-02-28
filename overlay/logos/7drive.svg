@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" role="img" aria-label="7DRIVE">
+  <rect width="220" height="64" fill="none"/>
+  <g transform="translate(6 7) skewX(-18)">
+    <path d="M0 0h43l-14 36h-16l10-25H0z" fill="#ff1a1a"/>
+    <path d="M56 0h18c14 0 23 7 23 18s-9 18-23 18H56zM73 10h-7v16h7c7 0 11-3 11-8s-4-8-11-8z" fill="#fff"/>
+    <path d="M102 0h29v9h-18v6h16v9h-16v12h-11z" fill="#fff"/>
+    <path d="M135 0h18c13 0 21 5 21 14 0 6-4 10-10 12l10 10h-14l-8-9h-6v9h-11zM152 9h-6v9h6c6 0 10-1 10-4s-4-5-10-5z" fill="#fff"/>
+    <path d="M178 0h11v36h-11z" fill="#fff"/>
+    <path d="M194 0h11l9 36h-11l-2-9h-8l-2 9h-10zM195 19h4l-2-9z" fill="#fff"/>
+  </g>
+</svg>

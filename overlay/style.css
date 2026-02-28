@@ -96,15 +96,14 @@ html, body {
 
 /* Info block */
 .info {
-  flex: 0 0 188px;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 5px 10px 5px 6px;
   gap: 1px;
   overflow: hidden;
-  min-width: 188px;
-  max-width: 188px;
+  min-width: 0;
 }
 .driver-name {
   font-size: calc(14px * var(--row-font-scale)); font-weight: 700; color: #fff;
@@ -127,6 +126,27 @@ html, body {
 /* Auto-hide team name when data is absent */
 .team-name:empty { display: none; }
 .pit-label { font-size: calc(10px * var(--row-font-scale)); font-weight: 700; color: #ffcc00; letter-spacing: 0.3px; }
+
+/* Team logo slot (between driver/team block and manufacturer) */
+.team-logo-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+}
+.team-logo {
+  width: 30px;
+  height: 30px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.team-logo-7drive {
+  background-image: url('logos/5357269178710614196_99.jpg');
+}
 
 /* Manufacturer logo slot (shows text + optional logo) */
 .mfr {
