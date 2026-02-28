@@ -22,6 +22,9 @@ html, body {
 #overlay {
   display: inline-block;
   width: 390px;
+  --car-row-min-height: 46px;
+  --car-num-inner-height: 28px;
+  --row-font-scale: 1;
   transform-origin: top left;   /* scale anchors to top-left corner */
 }
 
@@ -67,7 +70,7 @@ html, body {
 .car-row {
   display: flex;
   align-items: stretch;
-  min-height: 46px;
+  min-height: var(--car-row-min-height);
   height: auto;
   background: rgba(28,28,28,0.92);
 }
@@ -82,7 +85,7 @@ html, body {
   width: 38px;
   min-width: 38px;
   background: #eb0000;
-  font-size: 13px;
+  font-size: calc(13px * var(--row-font-scale));
   font-weight: 700;
   color: #fff;
 }
@@ -104,13 +107,13 @@ html, body {
   max-width: 188px;
 }
 .driver-name {
-  font-size: 14px; font-weight: 700; color: #fff;
+  font-size: calc(14px * var(--row-font-scale)); font-weight: 700; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   line-height: 1.2;
 }
 /* Team name — secondary line, broadcast style */
 .team-name {
-  font-size: 10px;
+  font-size: calc(10px * var(--row-font-scale));
   font-weight: 600;
   color: #9ca3af;
   letter-spacing: 0.45px;
@@ -123,7 +126,7 @@ html, body {
 }
 /* Auto-hide team name when data is absent */
 .team-name:empty { display: none; }
-.pit-label { font-size: 10px; font-weight: 700; color: #ffcc00; letter-spacing: 0.3px; }
+.pit-label { font-size: calc(10px * var(--row-font-scale)); font-weight: 700; color: #ffcc00; letter-spacing: 0.3px; }
 
 /* Manufacturer logo slot (shows text + optional logo) */
 .mfr {
@@ -136,7 +139,7 @@ html, body {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
-  font-size: 9px;
+  font-size: calc(9px * var(--row-font-scale));
   font-weight: 700;
   color: #aaa;
   letter-spacing: 0.4px;
@@ -173,8 +176,8 @@ html, body {
 }
 .car-num-inner {
   background: #fff; color: #111;
-  font-size: 11px; font-weight: 700;
-  border-radius: 2px; width: 100%; height: 28px;
+  font-size: calc(11px * var(--row-font-scale)); font-weight: 700;
+  border-radius: 2px; width: 100%; height: var(--car-num-inner-height);
   display: flex; align-items: center; justify-content: center;
 }
 
@@ -182,10 +185,10 @@ html, body {
 .gap {
   display: flex; align-items: center; justify-content: center;
   width: 72px; min-width: 72px;
-  font-size: 11px; font-weight: 700;
+  font-size: calc(11px * var(--row-font-scale)); font-weight: 700;
   color: #ff9900;
 }
-.gap.leader { color: #fff; font-size: 9px; letter-spacing: 0.5px; }
+.gap.leader { color: #fff; font-size: calc(9px * var(--row-font-scale)); letter-spacing: 0.5px; }
 .gap.lapped { color: #ff4444; }
 
 /* Quali / Practice right column */
@@ -194,19 +197,19 @@ html, body {
   width: 72px; min-width: 72px; padding-right: 8px; gap: 1px;
 }
 .best-lap {
-  font-size: 11px; font-weight: 700; color: #fff;
+  font-size: calc(11px * var(--row-font-scale)); font-weight: 700; color: #fff;
   font-variant-numeric: tabular-nums;
 }
 .gap-delta {
-  font-size: 9px; font-weight: 700; color: #ff9900;
+  font-size: calc(9px * var(--row-font-scale)); font-weight: 700; color: #ff9900;
   font-variant-numeric: tabular-nums;
 }
 .gap-delta.lapped { color: #ff4444; }
 
 /* Waiting */
 .waiting {
-  height: 46px; display: flex; align-items: center; justify-content: center;
-  background: rgba(28,28,28,0.92); color: #555; font-size: 12px;
+  min-height: var(--car-row-min-height); display: flex; align-items: center; justify-content: center;
+  background: rgba(28,28,28,0.92); color: #555; font-size: calc(12px * var(--row-font-scale));
 }
 
 /* Focused car highlight */

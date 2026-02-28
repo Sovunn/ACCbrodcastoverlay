@@ -268,6 +268,7 @@ class DataStore {
 
     return {
       connected: this.connected,
+      maxCarsPerClass: this.maxCarsPerClass,
       session: {
         type: this.session.sessionType,
         phase: this.session.phase,

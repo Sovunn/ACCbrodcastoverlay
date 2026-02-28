@@ -27,6 +27,21 @@ function esc(s) {
 // ── Panel state ───────────────────────────────
 let panels = { standings: true };
 
+function applyRowSizing(maxCarsPerClass) {
+  const overlay = document.getElementById('overlay');
+  if (!overlay) return;
+
+  const cap = Number.isFinite(Number(maxCarsPerClass)) ? Math.max(1, Number(maxCarsPerClass)) : 10;
+  const extraRows = Math.max(0, 10 - cap);
+  const rowHeight = Math.min(80, 46 + extraRows * 3);
+  const carNumHeight = Math.max(28, Math.min(44, rowHeight - 18));
+  const rowFontScale = Math.min(1.36, 1 + extraRows * 0.04);
+
+  overlay.style.setProperty('--car-row-min-height', `${rowHeight}px`);
+  overlay.style.setProperty('--car-num-inner-height', `${carNumHeight}px`);
+  overlay.style.setProperty('--row-font-scale', String(rowFontScale));
+}
+
 function applyPanels() {
   const wrapper = document.getElementById('standings-wrapper');
   if (!wrapper) return;
@@ -36,6 +51,8 @@ function applyPanels() {
 
 // ── Render standings ──────────────────────────
 function render(data) {
+  applyRowSizing(data?.maxCarsPerClass);
+
   const { session, track, classes, connected } = data;
   // Non-race sessions get quali layout; everything else (including unknown/replay) gets race layout
   const QUALI_TYPES = new Set([0, 1, 2, 4, 5, 6]);
