@@ -32,6 +32,7 @@ class DataStore {
     this.trackLength = 0;
     this.parseErrors = 0;
     this.lastParseErr = '';
+    this.maxCarsPerClass = 10;
   }
 
   // ── Reset ─────────────────────────────────
@@ -89,6 +90,10 @@ class DataStore {
     this._updateDriverLastLap(rt);
   }
   updateTrack(name, len) { this.trackName = name; this.trackLength = len; }
+  setMaxCarsPerClass(v) {
+    const n = Math.round(Number(v));
+    this.maxCarsPerClass = Number.isFinite(n) ? Math.max(1, Math.min(60, n)) : 10;
+  }
   // Called by SHM reader — all four weather fields from SPageFileGraphic
   updateShmWeather(grip, r0, r10, r30) {
     if (grip >= 0 && grip <= 6) this.session.trackGripStatus = grip;
@@ -192,10 +197,8 @@ class DataStore {
       (grouped[cls] = grouped[cls] ?? []).push(car);
     }
 
-    // Determine cap (10 per class in multiclass, 20 in single class)
-    const activeClasses = CLASS_ORDER.filter(c => grouped[c]?.length > 0);
-    const isMulticlass = activeClasses.length > 1;
-    const carCap = isMulticlass ? 10 : 20;
+    // Determine cap (user configurable, applies to each class list)
+    const carCap = this.maxCarsPerClass;
 
     // Build output per class
     const outClasses = {};

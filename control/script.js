@@ -14,12 +14,14 @@ const valOverlay = document.getElementById('val-overlay');
 const valDebug   = document.getElementById('val-debug');
 const warning    = document.getElementById('restart-warning');
 const btnToggle  = document.getElementById('btn-toggle-overlay');
+const inputClassCap = document.getElementById('input-class-cap');
 
 let currentOverlayVisible = false;
 let currentScale  = 1.0;
 let weatherScale  = 1.0;
 let driverScale   = 1.0;
 let isLocked      = false;
+let standingsCarsPerClass = 10;
 let currentPanels = { standings: true, weather: false, driver: false };
 
 const SCALE_MIN  = 0.5;
@@ -59,13 +61,26 @@ function updatePanelUI() {
   }
 }
 
+function clampCarsPerClass(v) {
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n)) return 10;
+  return Math.max(1, Math.min(60, n));
+}
+
+function updateCarsPerClassUI() {
+  if (!inputClassCap) return;
+  const v = String(standingsCarsPerClass);
+  if (inputClassCap.value !== v) inputClassCap.value = v;
+}
+
 // ── Render status ───────────────────────────
 function render(s) {
   const { connected, sessionType, phase, trackName, carCount, classes, overlayVisible, needsRestart,
           entryCount, realtimeCount, parseErrors, lastParseErr,
           overlayScale: remoteScale, overlayLocked: remoteLocked,
           panels: remotePanels,
-          weatherScale: remoteWeatherScale, driverScale: remoteDriverScale } = s;
+          weatherScale: remoteWeatherScale, driverScale: remoteDriverScale,
+          standingsCarsPerClass: remoteCarsPerClass } = s;
 
   // Sync scale/lock from main process (handles app restart or window reload)
   if (remoteScale !== undefined && remoteScale !== currentScale) {
@@ -87,6 +102,10 @@ function render(s) {
   if (remoteDriverScale !== undefined && remoteDriverScale !== driverScale) {
     driverScale = remoteDriverScale;
     updateDriverScaleUI();
+  }
+  if (remoteCarsPerClass !== undefined && remoteCarsPerClass !== standingsCarsPerClass) {
+    standingsCarsPerClass = clampCarsPerClass(remoteCarsPerClass);
+    updateCarsPerClassUI();
   }
 
   currentOverlayVisible = overlayVisible;
@@ -225,6 +244,12 @@ document.getElementById('btn-driver-up').addEventListener('click', () => {
   driverScale = Math.min(SCALE_MAX, Math.round((driverScale + SCALE_STEP) * 100) / 100);
   window.accApi.setDriverScale(driverScale);
   updateDriverScaleUI();
+});
+
+inputClassCap?.addEventListener('change', () => {
+  standingsCarsPerClass = clampCarsPerClass(inputClassCap.value);
+  updateCarsPerClassUI();
+  window.accApi.setStandingsCarsPerClass(standingsCarsPerClass);
 });
 
 // ── IPC ──────────────────────────────────────

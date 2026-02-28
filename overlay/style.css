@@ -93,17 +93,18 @@ html, body {
 
 /* Info block */
 .info {
-  flex: 1;
+  flex: 0 0 188px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 5px 10px 5px 6px;
   gap: 1px;
   overflow: hidden;
-  min-width: 0;
+  min-width: 188px;
+  max-width: 188px;
 }
 .driver-name {
-  font-size: 12px; font-weight: 700; color: #fff;
+  font-size: 14px; font-weight: 700; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   line-height: 1.2;
 }

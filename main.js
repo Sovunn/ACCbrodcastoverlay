@@ -56,6 +56,7 @@ let overlayScale     = 1.0;     // standings overlay scale factor (0.5 – 2.0)
 let weatherScale     = 1.0;     // weather panel scale factor
 let driverScale      = 1.0;     // driver panel scale factor
 let overlayLocked    = false;   // when true → click-through, can't be dragged
+let standingsCarsPerClass = 10; // standings rows shown per class
 let panels           = { standings: true, weather: false, driver: false };
 const store      = new DataStore();
 const sseClients = new Set();
@@ -419,6 +420,7 @@ function startStatusLoop() {
       panels,
       weatherScale,
       driverScale,
+      standingsCarsPerClass,
     };
 
     try {
@@ -433,6 +435,11 @@ function startStatusLoop() {
 
 // ── Config send helpers ────────────────────────────────────────────────────
 function clampScale(v) { return Math.max(0.5, Math.min(2.0, Number(v) || 1.0)); }
+function clampCarsPerClass(v) {
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n)) return 10;
+  return Math.max(1, Math.min(60, n));
+}
 
 /** Returns the BrowserWindow whose webContents sent the IPC event */
 function getWinBySender(wc) {
@@ -530,6 +537,11 @@ ipcMain.on('ctrl-set-driver-scale', (_event, scale) => {
   saveLayout();
 });
 
+ipcMain.on('ctrl-set-standings-cars-per-class', (_event, value) => {
+  standingsCarsPerClass = clampCarsPerClass(value);
+  store.setMaxCarsPerClass(standingsCarsPerClass);
+});
+
 ipcMain.on('ctrl-lock-overlay', (_event, locked) => {
   overlayLocked = !!locked;
   // Apply to all overlay windows
@@ -570,6 +582,7 @@ app.whenReady().then(() => {
     weatherScale = clampScale(savedLayout.scale.weather);
     driverScale  = clampScale(savedLayout.scale.driver);
   }
+  store.setMaxCarsPerClass(standingsCarsPerClass);
 
   // Auto-configure ACC broadcasting.json
   // If ACC was already running AND we had to modify the file → user must restart ACC

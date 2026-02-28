@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('accApi', {
   setPanel(name, v)   { ipcRenderer.send('ctrl-set-panel', { name, v }); },
   setWeatherScale(v)  { ipcRenderer.send('ctrl-set-weather-scale', v); },
   setDriverScale(v)   { ipcRenderer.send('ctrl-set-driver-scale', v); },
+  setStandingsCarsPerClass(v) { ipcRenderer.send('ctrl-set-standings-cars-per-class', v); },
 
   // ── Overlay (receives config updates) ─────
   onOverlayConfig(cb) { ipcRenderer.on('overlay-config', (_, d) => cb(d)); },
